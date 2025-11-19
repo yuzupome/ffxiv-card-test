@@ -16,7 +16,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Orbitron:wght@600&family=DotGothic16&family=Exo+2&family=Share+Tech&family=Permanent+Marker&family=Hachi+Maru+Pop&family=Dancing+Script&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="./assets/css/style.css" />
+    <!-- 縦型専用スタイル (Fixed) -->
     <style>
+        /* Preview panel sticky and tight spacing */
+        .preview-panel {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: var(--background-color);
+            padding-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Container adjustments */
         .preview-panel .canvas-container {
             width: 100% !important;
             max-width: 100% !important;
@@ -24,19 +37,21 @@
             justify-content: center;
             align-items: flex-start;
             background: transparent;
-            padding: 10px;
+            padding: 0 !important; /* Remove padding */
             box-sizing: border-box;
             height: auto !important;
         }
 
+        /* Wrapper: Vertical Aspect Ratio */
         .canvas-wrapper {
             position: relative;
             width: 100%;
-            max-width: 400px !important;
+            max-width: 425px !important; /* Max width for PC */
             aspect-ratio: 850 / 1200;
             margin: 0 auto;
         }
 
+        /* Canvas Layering */
         .canvas-wrapper canvas {
             position: absolute;
             top: 0;
@@ -48,9 +63,9 @@
         
         @media (max-width: 768px) {
             .canvas-wrapper {
-                max-width: 85vw !important;
+                max-width: 100% !important;
+            }
         }
-    }
     </style>
 </head>
 <body class="generator-page">
@@ -79,27 +94,28 @@
             <div id="controls-en" class="controls-container">
                 <div id="controls">
                     
+                    <!-- ▼▼ Vertical Specific Controls ▼▼ -->
                     <div class="control-section">
                         <h2 class="section-title">Template</h2>
                         <select id="templateSelect">
-                            <option value="Gothic_black">Gothic Black</option>
-                            <option value="Gothic_white">Gothic White</option>
-                            <option value="Gothic_pink">Gothic Pink</option>
-                            <option value="Gothic_ice">Gothic Ice</option>
-                            <option value="Gothic_lemon">Gothic Lemon</option>
-                            <option value="Gothic_mint">Gothic Mint</option>
-                            <option value="Gothic_peach">Gothic Peach</option>
-                            <option value="Neon_mono">Neon Mono</option>
-                            <option value="Neon_duotone">Neon Lime</option>
-                            <option value="Neon_meltdown">Neon Melt</option>
-                            <option value="Neon_midnight">Neon Midnight</option>
-                            <option value="Water">Aqua Flow</option>
-                            <option value="Lovely_heart">Lovely Heart</option>
-                            <option value="Royal_garnet">Royal Garnet</option>
-                            <option value="Royal_sapphire">Royal Sapphire</option>
-                            <option value="Royal_aventurine">Royal Aventurine</option>
-                            <option value="Snowflake">Snowflake</option>
-                            <option value="Vanilla">Vanilla</option>
+                            <option value="Gothic_black">🖤 Gothic Black</option>
+                            <option value="Gothic_white">🤍 Gothic White</option>
+                            <option value="Gothic_pink">🩷 Gothic Pink</option>
+                            <option value="Gothic_ice">🧊 Gothic Ice</option>
+                            <option value="Gothic_lemon">🍋 Gothic Lemon</option>
+                            <option value="Gothic_mint">🌿 Gothic Mint</option>
+                            <option value="Gothic_peach">🍑 Gothic Peach</option>
+                            <option value="Neon_mono">🎩 Neon Mono</option>
+                            <option value="Neon_duotone">🍋 Neon Lime</option>
+                            <option value="Neon_meltdown">🦄 Neon Melt</option>
+                            <option value="Neon_midnight">🌃 Neon Midnight</option>
+                            <option value="Water">🫧 Aqua Flow</option>
+                            <option value="Lovely_heart">💋 Lovely Heart</option>
+                            <option value="Royal_garnet">🥀 Royal Garnet</option>
+                            <option value="Royal_sapphire">💎 Royal Sapphire</option>
+                            <option value="Royal_aventurine">🍀 Royal Aventurine</option>
+                            <option value="Snowflake">❄️ Snowflake</option>
+                            <option value="Vanilla">🍨 Vanilla</option>
                         </select>
                     </div>
 
@@ -110,6 +126,8 @@
                             <option value="_right">Char Left / Frame Right (Right)</option>
                         </select>
                     </div>
+                    <!-- ▲▲ Vertical Specific Controls ▲▲ -->
+
                     <div id="top-controls" class="control-section">
                         <label for="uploadImage" class="file-upload-label">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
@@ -134,6 +152,15 @@
                                 <option value="'Dancing Script', cursive">Dancing Script</option>
                             </select>
                         </div>
+                        
+                        <!-- Name Color Selector -->
+                        <div class="name-color-selector" style="margin-top: 0.5rem; display: flex; gap: 1rem; font-size: 0.9rem;">
+                            <span style="font-weight:bold; font-size:0.8rem; align-self:center;">Name Color:</span>
+                            <label style="cursor:pointer;"><input type="radio" name="nameColor" value="auto" checked> Auto</label>
+                            <label style="cursor:pointer;"><input type="radio" name="nameColor" value="white"> White</label>
+                            <label style="cursor:pointer;"><input type="radio" name="nameColor" value="black"> Black</label>
+                        </div>
+
                         <div class="grid-col-3" style="margin-top: 1rem;">
                             <select id="dcSelect" required>
                                 <option value="" disabled selected>DC</option>

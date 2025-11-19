@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const subjobSection = document.getElementById('subjobSection');
     const downloadBtn = document.getElementById('downloadBtn');
     
+    // ★追加: 名前色選択ラジオボタン
+    const nameColorInputs = document.getElementsByName('nameColor');
+
     const appElement = document.getElementById('app');
     const loaderElement = document.getElementById('loader');
     const saveModal = document.getElementById('saveModal');
@@ -91,7 +94,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         en: { generating: 'Generating...', generateDefault: 'Generate Card' }
     };
 
-    let state = { font: "'Exo 2', sans-serif", position: '_left' };
+    let state = { 
+        font: "'Exo 2', sans-serif", 
+        position: '_left',
+        nameColorMode: 'auto' // ★追加: 名前色のモード初期値
+    };
     let imageTransform = { img: null, x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, scale: 1.0, isDragging: false, lastX: 0, lastY: 0 };
     let imageCache = {};
     let isDownloading = false;
@@ -154,12 +161,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- 5. 描画ロジック ---
     const updateState = () => {
+        // ★修正: nameColorModeの取得を追加
+        const selectedColorMode = document.querySelector('input[name="nameColor"]:checked');
+
         state = {
             template: templateSelect.value,
             position: positionSelect.value,
             iconBgColor: iconBgColorPicker.value,
             characterName: nameInput.value,
             font: fontSelect.value,
+            nameColorMode: selectedColorMode ? selectedColorMode.value : 'auto', // ★追加
             dc: dcSelect.value,
             race: raceSelect.value,
             progress: progressSelect.value,
@@ -262,7 +273,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         let fontSize = 50;
         ctx.font = `${fontSize}px "${fontName}"`;
         while(ctx.measureText(state.characterName).width > nameArea.width && fontSize > 10) { fontSize--; ctx.font = `${fontSize}px "${fontName}"`; }
-        ctx.fillStyle = config.nameColor || '#ffffff';
+        
+        // ★修正: 名前色の決定ロジック
+        if (state.nameColorMode === 'white') {
+            ctx.fillStyle = '#ffffff';
+        } else if (state.nameColorMode === 'black') {
+            ctx.fillStyle = '#000000';
+        } else {
+            // 'auto' の場合
+            ctx.fillStyle = config.nameColor || '#ffffff';
+        }
+
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(state.characterName, nameArea.x + nameArea.width / 2, nameArea.y + nameArea.height / 2);
@@ -278,16 +299,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const debouncedRedrawName = createDebouncer(redrawName, 200);
     const debouncedTrackColor = createDebouncer((color) => { if(window.dataLayer) window.dataLayer.push({ event: 'select_icon_color', color_code: color }); }, 500);
 
+    // ★重要: レイヤー順序の最終決定
     const drawUiLayer = async () => {
         uiCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         const config = templateConfig[state.template];
         if (!config) return;
+
+        // 1. その他アイコン (Misc)
         uiCtx.drawImage(miscCompositeCanvas, 0, 0);
+        
+        // 2. サブジョブ (Sub Job)
         uiCtx.drawImage(subJobCompositeCanvas, 0, 0);
+        
+        // 3. メインジョブ (Main Job)
         uiCtx.drawImage(mainJobCompositeCanvas, 0, 0);
+        
+        // 4. 飾り枠 (Frame) - これがメインジョブの上に来る
         let frameName = 'Common_background_square_frame';
         if (state.template === 'Water' || state.template === 'Lovely_heart') frameName = 'Common_background_circle_frame';
         await drawTinted(uiCtx, getAssetPath({ category: 'frame', filename: frameName }), config.iconTint);
+        
+        // 5. 名前 (Name) - これが最前面
         await drawNameText(uiCtx);
     };
     
@@ -308,6 +340,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         await redrawAll();
     });
     positionSelect.addEventListener('change', async () => { updateState(); await redrawAll(); });
+    
+    // ★追加: 名前色変更イベントリスナー
+    nameColorInputs.forEach(input => {
+        input.addEventListener('change', () => {
+            updateState();
+            debouncedRedrawName();
+        });
+    });
+
     const handleColorInput = (s, t) => { userHasManuallyPickedColor = true; t.value = s.value; updateState(); debouncedRedrawMisc(); debouncedRedrawSubJob(); debouncedTrackColor(s.value); };
     iconBgColorPicker.addEventListener('input', () => handleColorInput(iconBgColorPicker, stickyIconBgColorPicker));
     stickyIconBgColorPicker.addEventListener('input', () => handleColorInput(stickyIconBgColorPicker, iconBgColorPicker));
