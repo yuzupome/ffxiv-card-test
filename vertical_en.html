@@ -17,15 +17,40 @@
     
     <link rel="stylesheet" href="./assets/css/style.css" />
     <style>
+        .preview-panel .canvas-container {
+            width: 100% !important;
+            max-width: 100% !important;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            background: transparent;
+            padding: 10px;
+            box-sizing: border-box;
+            height: auto !important;
+        }
+
         .canvas-wrapper {
-            max-width: 425px;
+            position: relative;
+            width: 100%;
+            max-width: 400px !important;
+            aspect-ratio: 850 / 1200;
             margin: 0 auto;
         }
-        canvas {
-            width: 100%;
-            height: auto;
-            aspect-ratio: 850 / 1200;
+
+        .canvas-wrapper canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
         }
+        
+        @media (max-width: 768px) {
+            .canvas-wrapper {
+                max-width: 85vw !important;
+        }
+    }
     </style>
 </head>
 <body class="generator-page">

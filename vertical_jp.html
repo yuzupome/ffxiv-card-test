@@ -15,8 +15,40 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Orbitron:wght@600&family=DotGothic16&family=Exo+2&family=Share+Tech&family=Permanent+Marker&family=Hachi+Maru+Pop&family=Dancing+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./assets/css/style.css" />
     <style>
-        .canvas-wrapper { max-width: 425px; margin: 0 auto; }
-        canvas { width: 100%; height: auto; aspect-ratio: 850 / 1200; }
+        .preview-panel .canvas-container {
+            width: 100% !important;
+            max-width: 100% !important;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            background: transparent;
+            padding: 10px;
+            box-sizing: border-box;
+            height: auto !important;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px !important;
+            aspect-ratio: 850 / 1200;
+            margin: 0 auto;
+        }
+
+        .canvas-wrapper canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .canvas-wrapper {
+                max-width: 85vw !important;
+        }
+    }
     </style>
 </head>
 <body class="generator-page">
