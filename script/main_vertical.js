@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const uploadImageInput = document.getElementById('uploadImage');
     const fileNameDisplay = document.getElementById('fileName');
     const templateSelect = document.getElementById('templateSelect');
-    const positionSelect = document.getElementById('positionSelect'); // 新規
+    const positionSelect = document.getElementById('positionSelect');
     const raceSelect = document.getElementById('raceSelect');
     const dcSelect = document.getElementById('dcSelect');
     const progressSelect = document.getElementById('progressSelect');
@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const subjobSection = document.getElementById('subjobSection');
     const downloadBtn = document.getElementById('downloadBtn');
     
-    // ★追加: 名前色選択ラジオボタン
     const nameColorInputs = document.getElementsByName('nameColor');
 
     const appElement = document.getElementById('app');
@@ -54,6 +53,72 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 2. 定数と設定 ---
     const CANVAS_WIDTH = 850;
     const CANVAS_HEIGHT = 1200;
+
+    // ★追加: UI配色のための設定
+    const GOTHIC_PINK_COLOR = '#A142CD';
+    
+    // テンプレートごとのスタイル定義
+    // キー名は templateSelect の value と一致させています
+    const templateStyleConfig = {
+      'Vanilla': {
+        choiceOptionBg: '#5E4C22',    // 選択肢の背景色
+        choiceOptionBorder: '#FFF3C2' // 選択肢の枠線の色
+      },
+      'Gothic_ice': {
+        choiceOptionBg: '#ffffff',
+        pageBackground: '#ffffff'
+      },
+      'Snowflake': {
+        choiceOptionBg: '#ffffff',
+        pageBackground: '#ffffff'
+      },
+      'Gothic_lemon': {
+        choiceOptionBg: '#B4D84C'
+      },
+      'Gothic_peach': {
+        choiceOptionBg: GOTHIC_PINK_COLOR
+      }
+    };
+
+    /**
+     * テンプレート名に基づいてスタイル（CSS変数）を適用する関数
+     */
+    function applyTemplateStyles(templateName) {
+      const config = templateStyleConfig[templateName];
+      const rootStyle = document.documentElement.style;
+
+      // 設定がないテンプレートの場合は、変更したスタイルをリセット（初期値に戻す）
+      if (!config) {
+        rootStyle.removeProperty('--choice-bg-color');
+        rootStyle.removeProperty('--choice-border-color');
+        rootStyle.removeProperty('--main-bg-color');
+        return;
+      }
+
+      // 1. 選択肢の背景色を変更
+      if (config.choiceOptionBg) {
+        rootStyle.setProperty('--choice-bg-color', config.choiceOptionBg);
+      } else {
+        rootStyle.removeProperty('--choice-bg-color');
+      }
+
+      // 2. 選択肢の枠線の色を変更
+      if (config.choiceOptionBorder) {
+        rootStyle.setProperty('--choice-border-color', config.choiceOptionBorder);
+      } else {
+        rootStyle.removeProperty('--choice-border-color');
+      }
+
+      // 3. ページ全体の背景色を変更
+      if (config.pageBackground) {
+        rootStyle.setProperty('--main-bg-color', config.pageBackground);
+      } else {
+        rootStyle.removeProperty('--main-bg-color');
+      }
+      
+      console.log(`[Style] Template styles applied for: ${templateName}`);
+    }
+
 
     [backgroundLayer, characterLayer, uiLayer, miscCompositeCanvas, mainJobCompositeCanvas, subJobCompositeCanvas].forEach(c => {
         c.width = CANVAS_WIDTH;
@@ -97,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let state = { 
         font: "'Exo 2', sans-serif", 
         position: '_left',
-        nameColorMode: 'auto' // ★追加: 名前色のモード初期値
+        nameColorMode: 'auto'
     };
     let imageTransform = { img: null, x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, scale: 1.0, isDragging: false, lastX: 0, lastY: 0 };
     let imageCache = {};
@@ -161,7 +226,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- 5. 描画ロジック ---
     const updateState = () => {
-        // ★修正: nameColorModeの取得を追加
         const selectedColorMode = document.querySelector('input[name="nameColor"]:checked');
 
         state = {
@@ -170,7 +234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             iconBgColor: iconBgColorPicker.value,
             characterName: nameInput.value,
             font: fontSelect.value,
-            nameColorMode: selectedColorMode ? selectedColorMode.value : 'auto', // ★追加
+            nameColorMode: selectedColorMode ? selectedColorMode.value : 'auto',
             dc: dcSelect.value,
             race: raceSelect.value,
             progress: progressSelect.value,
@@ -274,13 +338,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         ctx.font = `${fontSize}px "${fontName}"`;
         while(ctx.measureText(state.characterName).width > nameArea.width && fontSize > 10) { fontSize--; ctx.font = `${fontSize}px "${fontName}"`; }
         
-        // ★修正: 名前色の決定ロジック
         if (state.nameColorMode === 'white') {
             ctx.fillStyle = '#ffffff';
         } else if (state.nameColorMode === 'black') {
             ctx.fillStyle = '#000000';
         } else {
-            // 'auto' の場合
             ctx.fillStyle = config.nameColor || '#ffffff';
         }
 
@@ -299,27 +361,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const debouncedRedrawName = createDebouncer(redrawName, 200);
     const debouncedTrackColor = createDebouncer((color) => { if(window.dataLayer) window.dataLayer.push({ event: 'select_icon_color', color_code: color }); }, 500);
 
-    // ★重要: レイヤー順序の最終決定
     const drawUiLayer = async () => {
         uiCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         const config = templateConfig[state.template];
         if (!config) return;
 
-        // 1. その他アイコン (Misc)
         uiCtx.drawImage(miscCompositeCanvas, 0, 0);
-        
-        // 2. サブジョブ (Sub Job)
         uiCtx.drawImage(subJobCompositeCanvas, 0, 0);
-        
-        // 3. メインジョブ (Main Job)
         uiCtx.drawImage(mainJobCompositeCanvas, 0, 0);
         
-        // 4. 飾り枠 (Frame) - これがメインジョブの上に来る
         let frameName = 'Common_background_square_frame';
         if (state.template === 'Water' || state.template === 'Lovely_heart') frameName = 'Common_background_circle_frame';
         await drawTinted(uiCtx, getAssetPath({ category: 'frame', filename: frameName }), config.iconTint);
         
-        // 5. 名前 (Name) - これが最前面
         await drawNameText(uiCtx);
     };
     
@@ -331,6 +385,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     templateSelect.addEventListener('change', async () => {
         updateState();
+        // ★変更: テンプレート変更時にUIスタイルも適用
+        applyTemplateStyles(state.template);
+        
         if (!userHasManuallyPickedColor) {
             const config = templateConfig[state.template];
             const newColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : config.defaultBg;
@@ -341,7 +398,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     positionSelect.addEventListener('change', async () => { updateState(); await redrawAll(); });
     
-    // ★追加: 名前色変更イベントリスナー
     nameColorInputs.forEach(input => {
         input.addEventListener('change', () => {
             updateState();
@@ -457,6 +513,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         stickyIconBgColorPicker.value = initialColor || '#CCCCCC';
         drawCharacterLayer();
         await redrawAll();
+        
+        // ★追加: 初期ロード時もテンプレートごとのスタイルを適用
+        applyTemplateStyles(templateSelect.value);
+
         loaderElement.style.display = 'none';
         appElement.style.visibility = 'visible';
     };
