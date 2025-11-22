@@ -77,12 +77,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         'whitemage': 'whitemage', 'scholar': 'scholar', 'astrologian': 'astrologian', 'sage': 'sage',
         'monk': 'monk', 'dragoon': 'dragoon', 'ninja': 'ninja', 'samurai': 'samurai', 'reaper': 'reaper', 'viper': 'viper',
         'bard': 'bard', 'machinist': 'machinist', 
-        'dancer': 'dancer', // HTML value='dancer' -> Filename 'dancer'
+        'dancer': 'dancer',
         'blackmage': 'blackmage', 'summoner': 'summoner', 'redmage': 'redmage', 'pictomancer': 'pictomancer', 'bluemage': 'bluemage',
         'carpenter': 'carpenter', 'blacksmith': 'blacksmith', 'armorer': 'armorer', 'goldsmith': 'goldsmith',
         'leatherworker': 'leatherworker', 'weaver': 'weaver', 'alchemist': 'alchemist', 'culinarian': 'culinarian',
         'miner': 'miner', 'botanist': 'botanist', 
-        'fisher': 'fisher'  // HTML value='fisher' -> Filename 'fisher'
+        'fisher': 'fisher'
     };
 
     // テンプレート設定
@@ -135,7 +135,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 langSuffix = '_en';
             }
         }
-        const posSuffix = state.position; 
+        // ★修正: ignorePositionオプションがあれば _left/_right を付けない
+        const posSuffix = options.ignorePosition ? '' : state.position; 
         let finalFilename = options.filename;
         return `./assets/images/vertical/${options.category}/${finalFilename}${posSuffix}${langSuffix}.webp`;
     };
@@ -228,9 +229,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
 
         // DC (Frameレイヤー)
+        // ★修正: ignorePosition: true を指定して左右の接尾辞が付かないようにする
         if(state.dc && layerType === 'frame') {
             const dcTheme = state.template.startsWith('Royal') ? 'Royal' : 'Common';
-            await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `${dcTheme}_dc_${state.dc}` }), config.iconTint);
+            await drawTinted(ctx, getAssetPath({ 
+                category: 'parts_text', 
+                filename: `${dcTheme}_dc_${state.dc}`,
+                ignorePosition: true 
+            }), config.iconTint);
         }
         
         // Race
@@ -263,22 +269,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // ★修正: シート2の内容に基づき番号を修正
+        // Playstyle
         const playstyleBgNumMap = {
             leveling: '01',
-            raid: '06',      // 修正: 9->6
+            raid: '06',
             pvp: '03',
-            dd: '14',        // 修正: 12->14
-            hunt: '09',      // 修正: 7->9
-            map: '08',       // 修正: 2->8
-            gatherer: '05',  // 修正: 8->5
-            crafter: '07',   // 修正: 6->7
-            gil: '02',       // 修正: 5->2
+            dd: '14',
+            hunt: '09',
+            map: '08',
+            gatherer: '05',
+            crafter: '07',
+            gil: '02',
             perform: '10',
-            streaming: '12', // 修正: 14->12
-            glam: '04',      // 修正: 11->4
+            streaming: '12',
+            glam: '04',
             studio: '13',
-            housing: '11',   // 修正: 4->11
+            housing: '11',
             screenshot: '15',
             drawing: '16',
             roleplay: '17'
@@ -398,7 +404,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateState();
         await drawTemplateLayer();
         
-        // 残像防止のため全レイヤーをクリア
         miscBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         miscFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         subJobBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
