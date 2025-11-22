@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const subjobSection = document.getElementById('subjobSection');
     const downloadBtn = document.getElementById('downloadBtn');
     
-    // ★変更: ラジオボタンではなくカラーピッカーを取得
     const textColorPicker = document.getElementById('textColorPicker');
 
     const appElement = document.getElementById('app');
@@ -117,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let state = { 
         font: "'Exo 2', sans-serif", 
         position: '_left',
-        nameColor: '#ffffff' // ★変更: カラーコードで管理
+        nameColor: '#ffffff'
     };
     let imageTransform = { img: null, x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, scale: 1.0, isDragging: false, lastX: 0, lastY: 0 };
     let imageCache = {};
@@ -186,7 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             iconBgColor: iconBgColorPicker.value,
             characterName: nameInput.value,
             font: fontSelect.value,
-            nameColor: textColorPicker.value, // ★変更: カラーピッカーから取得
+            nameColor: textColorPicker.value,
             dc: dcSelect.value,
             race: raceSelect.value,
             progress: progressSelect.value,
@@ -207,7 +206,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const drawCharacterLayer = () => {
-        bgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        // ★重要: 背景を黒で塗りつぶす (ホワイトアウト対策)
+        bgCtx.fillStyle = '#000000';
+        bgCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
         if (imageTransform.img) {
             bgCtx.save();
             bgCtx.translate(imageTransform.x, imageTransform.y);
@@ -227,7 +229,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!config) return;
         const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
 
-        // DC
         if(state.dc && layerType === 'frame') {
             const dcTheme = state.template.startsWith('Royal') ? 'Royal' : 'Common';
             await drawTinted(ctx, getAssetPath({ 
@@ -237,7 +238,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }), config.iconTint);
         }
         
-        // Race
         const raceValue = raceAssetMap[state.race] || state.race;
         if (raceValue) {
             if (layerType === 'bg') {
@@ -248,7 +248,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        // Progress
         if (state.progress) {
             const stages = ['shinsei', 'souten', 'guren', 'shikkoku', 'gyougetsu', 'ougon'];
             if (layerType === 'bg') {
@@ -267,7 +266,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // Playstyle
         const playstyleBgNumMap = {
             leveling: '01',
             raid: '06',
@@ -295,7 +293,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // Time
         for (const time of state.playtimes) {
             if (layerType === 'bg') {
                 await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_time_${time}_bg` }), getIconBgColor('time'));
@@ -305,335 +302,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // Raid
         if (layerType === 'bg') {
             for (const diff of state.difficulties) {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_raid_${diff}_bg` }), getIconBgColor('raid'));
-            }
-        }
-    };
-
-    const drawMainJobIcon = async (ctx) => {
-        const filename = JOB_FILENAME_MAP[state.mainjob] || state.mainjob;
-        if(state.mainjob) await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_main` }), templateConfig[state.template].iconTint);
-    };
-
-    const drawSubJobParts = async (ctx, layerType) => {
-        const config = templateConfig[state.template];
-        for (const job of state.subjobs) {
-            const filename = JOB_FILENAME_MAP[job] || job;
-            
-            if (layerType === 'bg') {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_job_${filename}_sub_bg` }), getIconBgColor('subjob'));
-            }
-            if (layerType === 'frame') {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_sub_frame` }), config.iconTint);
-            }
-        }
-    };
-
-    const drawNameText = async (ctx) => {
-        if (!state.characterName || !state.font) return;
-        const config = templateConfig[state.template];
-        if(!config) return;
-        const fontName = state.font.split(',')[0].replace(/'/g, '');
-        const nameArea = NAME_COORDS[state.position];
-        let fontSize = 50;
-        ctx.font = `${fontSize}px "${fontName}"`;
-        while(ctx.measureText(state.characterName).width > nameArea.width && fontSize > 10) { fontSize--; ctx.font = `${fontSize}px "${fontName}"`; }
-        
-        // ★変更: カラーピッカーの値を直接使用
-        ctx.fillStyle = state.nameColor || '#ffffff';
-
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(state.characterName, nameArea.x + nameArea.width / 2, nameArea.y + nameArea.height / 2);
-    };
-
-    const redrawMiscBg = async () => { miscBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawMiscParts(miscBgCtx, 'bg'); await drawUiLayer(); };
-    const redrawMiscFrame = async () => { miscFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawMiscParts(miscFrameCtx, 'frame'); await drawUiLayer(); };
-    
-    const redrawSubJobBg = async () => { subJobBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawSubJobParts(subJobBgCtx, 'bg'); await drawUiLayer(); };
-    const redrawSubJobFrame = async () => { subJobFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawSubJobParts(subJobFrameCtx, 'frame'); await drawUiLayer(); };
-
-    const redrawMainJob = async () => { mainJobCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawMainJobIcon(mainJobCtx); await drawUiLayer(); };
-    const redrawName = async () => { await drawUiLayer(); };
-    
-    const debouncedRedrawMisc = createDebouncer(async () => {
-        miscBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        miscFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        await Promise.all([drawMiscParts(miscBgCtx, 'bg'), drawMiscParts(miscFrameCtx, 'frame')]);
-        await drawUiLayer();
-    }, 50);
-    
-    const debouncedRedrawSubJob = createDebouncer(async () => {
-        subJobBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        subJobFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        await Promise.all([drawSubJobParts(subJobBgCtx, 'bg'), drawSubJobParts(subJobFrameCtx, 'frame')]);
-        await drawUiLayer();
-    }, 50);
-
-    const debouncedRedrawMainJob = createDebouncer(redrawMainJob, 50);
-    const debouncedRedrawName = createDebouncer(redrawName, 200);
-    const debouncedTrackColor = createDebouncer((color) => { if(window.dataLayer) window.dataLayer.push({ event: 'select_icon_color', color_code: color }); }, 500);
-
-    const drawUiLayer = async () => {
-        uiCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        const config = templateConfig[state.template];
-        if (!config) return;
-
-        uiCtx.drawImage(miscBgCanvas, 0, 0);
-        uiCtx.drawImage(subJobBgCanvas, 0, 0);
-
-        await drawTinted(uiCtx, getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), config.iconTint);
-
-        uiCtx.drawImage(miscFrameCanvas, 0, 0);
-        uiCtx.drawImage(subJobFrameCanvas, 0, 0);
-        uiCtx.drawImage(mainJobCompositeCanvas, 0, 0);
-        await drawNameText(uiCtx);
-    };
-    
-    const redrawAll = async () => {
-        updateState();
-        await drawTemplateLayer();
-        
-        miscBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        miscFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        subJobBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        subJobFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        mainJobCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-        await Promise.all([
-            drawMiscParts(miscBgCtx, 'bg'),
-            drawMiscParts(miscFrameCtx, 'frame'),
-            drawSubJobParts(subJobBgCtx, 'bg'),
-            drawSubJobParts(subJobFrameCtx, 'frame'),
-            drawMainJobIcon(mainJobCtx)
-        ]);
-        await drawUiLayer();
-    };
-
-    templateSelect.addEventListener('change', async () => {
-        updateState();
-        
-        if (!userHasManuallyPickedColor) {
-            const config = templateConfig[state.template];
-            if (config) {
-                let newColor = '#CCCCCC';
-                if (typeof config.defaultBg === 'object') {
-                    newColor = config.defaultBg.primary;
-                } else if (config.defaultBg) {
-                    newColor = config.defaultBg;
-                }
-                iconBgColorPicker.value = newColor;
-                stickyIconBgColorPicker.value = newColor;
-            }
-        }
-
-        if (!userHasManuallyPickedTextColor) {
-            const config = templateConfig[state.template];
-            if (config && config.nameColor) {
-                textColorPicker.value = config.nameColor;
-            }
-        }
-
-        await redrawAll();
-    });
-    positionSelect.addEventListener('change', async () => { updateState(); await redrawAll(); });
-    
-    // ★変更: カラーピッカーの変更イベント
-    textColorPicker.addEventListener('input', () => {
-        userHasManuallyPickedTextColor = true;
-        updateState();
-        debouncedRedrawName();
-    });
-
-    const handleColorInput = (s, t) => { 
-        userHasManuallyPickedColor = true; 
-        t.value = s.value; 
-        updateState(); 
-        debouncedRedrawMisc(); 
-        debouncedRedrawSubJob(); 
-        debouncedTrackColor(s.value); 
-    };
-    iconBgColorPicker.addEventListener('input', () => handleColorInput(iconBgColorPicker, stickyIconBgColorPicker));
-    stickyIconBgColorPicker.addEventListener('input', () => handleColorInput(stickyIconBgColorPicker, iconBgColorPicker));
-    
-    const resetColorAction = () => {
-        userHasManuallyPickedColor = false;
-        const config = templateConfig[templateSelect.value];
-        let defaultColor = '#CCCCCC';
-        if (config) {
-            if (typeof config.defaultBg === 'object') {
-                defaultColor = config.defaultBg.primary;
-            } else if (config.defaultBg) {
-                defaultColor = config.defaultBg;
-            }
-        }
-        iconBgColorPicker.value = defaultColor;
-        stickyIconBgColorPicker.value = defaultColor;
-        updateState();
-        debouncedRedrawMisc();
-        debouncedRedrawSubJob();
-    };
-    resetColorBtn.addEventListener('click', resetColorAction);
-    stickyResetColorBtn.addEventListener('click', resetColorAction);
-    [dcSelect, raceSelect, progressSelect].forEach(el => el.addEventListener('change', () => { updateState(); debouncedRedrawMisc(); }));
-    [styleButtonsContainer, playtimeOptionsContainer, difficultyOptionsContainer].forEach(c => c.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') e.target.classList.toggle('active'); if (e.target.tagName === 'BUTTON' || e.target.type === 'checkbox') { updateState(); debouncedRedrawMisc(); }}));
-    
-    mainjobSelect.addEventListener('change', (e) => {
-        updateState();
-        const newMainJob = e.target.value;
-
-        if (newMainJob) {
-            const targetBtn = subjobSection.querySelector(`button[data-value="${newMainJob}"]`);
-            if (targetBtn) {
-                targetBtn.classList.add('active');
-            }
-        }
-        
-        updateState();
-        debouncedRedrawMainJob(); 
-        debouncedRedrawSubJob();
-    });
-
-    subjobSection.addEventListener('click', (e) => { 
-        if (e.target.tagName === 'BUTTON') {
-            e.target.classList.toggle('active'); 
-            updateState(); 
-            debouncedRedrawSubJob(); 
-        }
-    });
-
-    nameInput.addEventListener('input', () => { updateState(); debouncedRedrawName(); });
-    fontSelect.addEventListener('change', () => { updateState(); debouncedRedrawName(); });
-    uploadImageInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) { imageTransform.img = null; fileNameDisplay.textContent = ''; drawCharacterLayer(); return; }
-        fileNameDisplay.textContent = file.name;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                imageTransform.img = img;
-                const canvasAspect = CANVAS_WIDTH / CANVAS_HEIGHT;
-                const imgAspect = img.width / img.height;
-                imageTransform.scale = (imgAspect > canvasAspect) ? (CANVAS_HEIGHT / img.height) : (CANVAS_WIDTH / img.width);
-                imageTransform.x = CANVAS_WIDTH / 2; imageTransform.y = CANVAS_HEIGHT / 2; drawCharacterLayer();
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
-    const handleDrag = (e, isTouch = false) => {
-        if (!imageTransform.isDragging || !imageTransform.img) return;
-        e.preventDefault();
-        const loc = isTouch ? e.touches[0] : e;
-        const dx = loc.clientX - imageTransform.lastX; const dy = loc.clientY - imageTransform.lastY;
-        imageTransform.x += dx; imageTransform.y += dy; imageTransform.lastX = loc.clientX; imageTransform.lastY = loc.clientY; drawCharacterLayer();
-    };
-    uiLayer.addEventListener('mousedown', (e) => { if (!imageTransform.img) return; imageTransform.isDragging = true; imageTransform.lastX = e.clientX; imageTransform.lastY = e.clientY; });
-    window.addEventListener('mousemove', (e) => handleDrag(e, false));
-    window.addEventListener('mouseup', () => { imageTransform.isDragging = false; });
-    uiLayer.addEventListener('wheel', (e) => { if (!imageTransform.img) return; e.preventDefault(); imageTransform.scale *= e.deltaY < 0 ? 1.05 : 1 / 1.05; drawCharacterLayer(); });
-    let lastTouchDistance = 0;
-    uiLayer.addEventListener('touchstart', (e) => {
-        if (!imageTransform.img) return; e.preventDefault();
-        if (e.touches.length === 1) { imageTransform.isDragging = true; imageTransform.lastX = e.touches[0].clientX; imageTransform.lastY = e.touches[0].clientY; }
-        else if (e.touches.length === 2) { imageTransform.isDragging = false; const dx = e.touches[0].clientX - e.touches[1].clientX; const dy = e.touches[0].clientY - e.touches[1].clientY; lastTouchDistance = Math.sqrt(dx * dx + dy * dy); }
-    }, { passive: false });
-    uiLayer.addEventListener('touchmove', (e) => {
-        if (!imageTransform.img) return; e.preventDefault();
-        if (e.touches.length === 1 && imageTransform.isDragging) handleDrag(e, true);
-        else if (e.touches.length === 2) {
-            const dx = e.touches[0].clientX - e.touches[1].clientX; const dy = e.touches[0].clientY - e.touches[1].clientY; const newDist = Math.sqrt(dx * dx + dy * dy);
-            if (lastTouchDistance > 0) imageTransform.scale *= newDist / lastTouchDistance;
-            lastTouchDistance = newDist; drawCharacterLayer();
-        }
-    }, { passive: false });
-    window.addEventListener('touchend', () => { imageTransform.isDragging = false; lastTouchDistance = 0; });
-    downloadBtn.addEventListener('click', async () => {
-        if (isDownloading) return;
-        isDownloading = true;
-        downloadBtn.querySelector('span').textContent = translations[currentLang].generating;
-        try {
-            const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = CANVAS_WIDTH; finalCanvas.height = CANVAS_HEIGHT;
-            const finalCtx = finalCanvas.getContext('2d');
-            if (imageTransform.img) finalCtx.drawImage(backgroundLayer, 0, 0);
-            await drawTinted(finalCtx, getAssetPath({ category: 'base', filename: `${state.template}_cp` }));
-            
-            finalCtx.drawImage(miscBgCanvas, 0, 0);
-            finalCtx.drawImage(subJobBgCanvas, 0, 0);
-            await drawTinted(finalCtx, getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), templateConfig[state.template].iconTint);
-            finalCtx.drawImage(miscFrameCanvas, 0, 0);
-            finalCtx.drawImage(subJobFrameCanvas, 0, 0);
-            finalCtx.drawImage(mainJobCompositeCanvas, 0, 0);
-            await drawNameText(finalCtx);
-            
-            const imageUrl = finalCanvas.toDataURL('image/jpeg', 0.92);
-            if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) { modalImage.src = imageUrl; saveModal.classList.remove('hidden'); }
-            else { const link = document.createElement('a'); link.download = 'ffxiv_character_card_vertical.jpeg'; link.href = imageUrl; link.click(); }
-        } catch (error) { console.error(error); alert("失敗しました"); }
-        finally { isDownloading = false; downloadBtn.querySelector('span').textContent = translations[currentLang].generateDefault; }
-    });
-    closeModalBtn.addEventListener('click', () => { saveModal.classList.add('hidden'); });
-    window.addEventListener('scroll', () => { const rect = mainColorPickerSection.getBoundingClientRect(); if (rect.bottom < 50) stickyColorDrawer.classList.remove('is-hidden'); else { stickyColorDrawer.classList.add('is-hidden'); stickyColorDrawer.classList.add('is-closed'); }});
-    drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
-
-    const initMobileUI = () => {
-        if (window.innerWidth > 768) return;
-
-        const actionBar = document.createElement('div');
-        actionBar.className = 'mobile-action-bar';
-        
-        const settingsBtn = document.createElement('button');
-        settingsBtn.className = 'mobile-action-btn btn-secondary';
-        settingsBtn.innerHTML = '⚙️ 設定・入力';
-        
-        const saveBtnMobile = document.createElement('button');
-        saveBtnMobile.className = 'mobile-action-btn btn-primary';
-        saveBtnMobile.innerHTML = '📥 画像保存';
-
-        actionBar.appendChild(settingsBtn);
-        actionBar.appendChild(saveBtnMobile);
-        document.body.appendChild(actionBar);
-
-        const controlsPanel = document.querySelector('.controls-panel');
-        
-        const sheetHeader = document.createElement('div');
-        sheetHeader.className = 'bottom-sheet-header';
-        const handleBar = document.createElement('div');
-        handleBar.className = 'sheet-handle-bar';
-        sheetHeader.appendChild(handleBar);
-        
-        controlsPanel.insertBefore(sheetHeader, controlsPanel.firstChild);
-
-        settingsBtn.addEventListener('click', () => {
-            controlsPanel.classList.toggle('is-open');
-        });
-
-        sheetHeader.addEventListener('click', () => {
-            controlsPanel.classList.remove('is-open');
-        });
-
-        saveBtnMobile.addEventListener('click', () => {
-            downloadBtn.click();
-        });
-    };
-
-    const initialize = async () => {
-        await preloadFonts();
-        fontSelect.value = state.font;
-        const config = templateConfig[templateSelect.value];
-        const initialColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config && config.defaultBg) ? config.defaultBg : '#CCCCCC';
-        iconBgColorPicker.value = initialColor;
-        stickyIconBgColorPicker.value = initialColor;
-        drawCharacterLayer();
-        await redrawAll();
-        initMobileUI(); 
-        loaderElement.style.display = 'none';
-        appElement.style.visibility = 'visible';
-    };
-    initialize();
-});
+                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_raid_${

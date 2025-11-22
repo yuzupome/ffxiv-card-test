@@ -66,6 +66,8 @@ body.generator-page #app { visibility: hidden; }
     overflow: hidden;
     border: 1px solid var(--border-color);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    /* ★修正: Canvasが透けたときの保険として、コンテナ自体も黒くする */
+    background-color: #000000;
 }
 .canvas-wrapper canvas {
     position: absolute;
@@ -75,6 +77,8 @@ body.generator-page #app { visibility: hidden; }
     height: 100%;
     background-color: transparent;
     display: block;
+    /* ★修正: 表示崩れ防止 */
+    visibility: visible !important;
 }
 #background-layer { background-color: #000; }
 #ui-layer { cursor: grab; }
