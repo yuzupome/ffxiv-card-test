@@ -71,8 +71,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         _right: { x: 197, y: 1073, width: 442, height: 70 }
     };
 
-    // ★修正: ジョブIDとファイル名の変換マップ
-    // いただいた画像ファイルの命名規則(dancer, fisher)に準拠
+    // ジョブIDとファイル名の変換マップ
     const JOB_FILENAME_MAP = {
         'paladin': 'paladin', 'warrior': 'warrior', 'darkknight': 'darkknight', 'gunbreaker': 'gunbreaker',
         'whitemage': 'whitemage', 'scholar': 'scholar', 'astrologian': 'astrologian', 'sage': 'sage',
@@ -86,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         'fisher': 'fisher'  // HTML value='fisher' -> Filename 'fisher'
     };
 
-    // ★設定: テンプレート設定（スプレッドシート内容反映済み）
+    // テンプレート設定
     const templateConfig = {
         'Gothic_black':   { nameColor: '#ffffff', iconTint: '#ffffff', defaultBg: '#A142CD', iconTheme: 'Common' },
         'Gothic_white':   { nameColor: '#000000', iconTint: '#000000', defaultBg: '#6CD9D6', iconTheme: 'Common' },
@@ -264,22 +263,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // Playstyle (シート2の内容反映)
+        // ★修正: シート2の内容に基づき番号を修正
         const playstyleBgNumMap = {
             leveling: '01',
-            raid: '09',
+            raid: '06',      // 修正: 9->6
             pvp: '03',
-            dd: '12',
-            hunt: '07',
-            map: '02',
-            gatherer: '08',
-            crafter: '06',
-            gil: '05',
+            dd: '14',        // 修正: 12->14
+            hunt: '09',      // 修正: 7->9
+            map: '08',       // 修正: 2->8
+            gatherer: '05',  // 修正: 8->5
+            crafter: '07',   // 修正: 6->7
+            gil: '02',       // 修正: 5->2
             perform: '10',
-            streaming: '14',
-            glam: '11',
+            streaming: '12', // 修正: 14->12
+            glam: '04',      // 修正: 11->4
             studio: '13',
-            housing: '04',
+            housing: '11',   // 修正: 4->11
             screenshot: '15',
             drawing: '16',
             roleplay: '17'
@@ -399,7 +398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateState();
         await drawTemplateLayer();
         
-        // ★修正: 残像防止のため、中間レイヤーを全てクリアする
+        // 残像防止のため全レイヤーをクリア
         miscBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         miscFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         subJobBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
