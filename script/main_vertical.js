@@ -1,6 +1,6 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Final Fixed Version
+ * Priority Fix Version
  */
 document.addEventListener('DOMContentLoaded', async () => {
 
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const drawCharacterLayer = () => {
-        // ★重要: 背景を黒で塗りつぶす (ホワイトアウト対策)
+        // 背景を黒で塗りつぶす (ホワイトアウト対策)
         bgCtx.fillStyle = '#000000';
         bgCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -601,6 +601,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const controlsPanel = document.querySelector('.controls-panel');
         
+        // DOM要素が存在するかチェック
+        if (!controlsPanel) return;
+
         const sheetHeader = document.createElement('div');
         sheetHeader.className = 'bottom-sheet-header';
         const handleBar = document.createElement('div');
@@ -623,17 +626,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const initialize = async () => {
-        await preloadFonts();
-        fontSelect.value = state.font;
-        const config = templateConfig[templateSelect.value];
-        const initialColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config && config.defaultBg) ? config.defaultBg : '#CCCCCC';
-        iconBgColorPicker.value = initialColor;
-        stickyIconBgColorPicker.value = initialColor;
-        drawCharacterLayer();
-        await redrawAll();
-        initMobileUI(); 
-        loaderElement.style.display = 'none';
-        appElement.style.visibility = 'visible';
+        try {
+            await preloadFonts();
+            fontSelect.value = state.font;
+            const config = templateConfig[templateSelect.value];
+            const initialColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config && config.defaultBg) ? config.defaultBg : '#CCCCCC';
+            iconBgColorPicker.value = initialColor;
+            stickyIconBgColorPicker.value = initialColor;
+            drawCharacterLayer();
+            await redrawAll();
+            
+            // ★修正: 順番を入れ替え。ロード画面を消すのを最優先にする。
+            loaderElement.style.display = 'none';
+            appElement.style.visibility = 'visible';
+            
+            // その後でスマホメニューの構築を試みる（万が一ここでエラーが出ても画面は表示される）
+            initMobileUI(); 
+
+        } catch (e) {
+            console.error("Initialization error:", e);
+            // エラーが起きても最低限画面は表示させる
+            loaderElement.style.display = 'none';
+            appElement.style.visibility = 'visible';
+        }
     };
     initialize();
 });
