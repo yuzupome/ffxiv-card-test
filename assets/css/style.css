@@ -1,5 +1,5 @@
 :root {
-    /* 基本カラー: 白ベースの固定デザイン */
+    /* 基本カラー */
     --bg-color: #ffffff;
     --surface-color: #f9fafb;
     --primary-color: #6b7280;
@@ -7,6 +7,7 @@
     --text-color: #374151;
     --text-secondary-color: #6b7280;
     --border-color: #e5e7eb;
+    --accent-color: #f2b26b; /* アクセントカラー定義 */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -17,7 +18,8 @@ body {
   color: var(--text-color);
   margin: 0;
   line-height: 1.6;
-  overflow-x: hidden; /* 横スクロール防止 */
+  overflow-x: hidden;
+  padding-bottom: 80px; /* スマホのアクションバー分の余白 */
 }
 
 #app { display: flex; flex-direction: column; min-height: 100vh; }
@@ -51,6 +53,7 @@ body.generator-page #app { visibility: hidden; }
 .controls-panel {
     width: 100%;
     margin-top: 2rem;
+    background-color: var(--bg-color); /* 背景色を明示 */
 }
 
 /* Canvas レイヤー */
@@ -62,6 +65,7 @@ body.generator-page #app { visibility: hidden; }
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 .canvas-wrapper canvas {
     position: absolute;
@@ -277,15 +281,9 @@ input[type="checkbox"]:checked + span::after {
     margin-top: 1rem;
 }
 
-/* レスポンシブ対応 */
-@media (max-width: 767px) {
-    .site-header { padding: 1rem; }
-    .content-wrapper { padding: 2rem 1rem; }
-    .grid-col-2, .grid-col-3 { grid-template-columns: 1fr; }
-    .site-footer { padding: 1.5rem 1rem; }
-}
-
-@media (min-width: 768px) {
+/* レスポンシブ対応 & PCレイアウト */
+@media (min-width: 769px) {
+  body { padding-bottom: 0; }
   .content-wrapper { 
       display: flex;
       flex-direction: row; 
@@ -305,9 +303,108 @@ input[type="checkbox"]:checked + span::after {
     padding-left: 2rem;
     margin-top: 0;
   }
+  /* PCではアクションバーとボトムシートヘッダーを隠す */
+  .mobile-action-bar { display: none !important; }
+  .bottom-sheet-header { display: none !important; }
 }
 
-/* UI改善のためのスタイル */
+/* 📱 スマホ専用スタイル (ボトムシート) */
+@media (max-width: 768px) {
+    .site-header { padding: 1rem; }
+    .content-wrapper { padding: 2rem 1rem; }
+    .grid-col-2, .grid-col-3 { grid-template-columns: 1fr; }
+    .site-footer { padding: 1.5rem 1rem; padding-bottom: 100px; } /* アクションバー回避 */
+
+    /* 右パレットはスマホでは非表示 */
+    .sticky-drawer { display: none !important; }
+
+    /* ボトムシート化する入力フォーム */
+    .controls-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 85vh; /* 画面の85%の高さ */
+        background-color: var(--bg-color);
+        z-index: 3000;
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        padding: 0 1.5rem 1.5rem 1.5rem;
+        transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        transform: translateY(100%); /* デフォルトは隠す */
+        overflow-y: auto;
+    }
+
+    .controls-panel.is-open {
+        transform: translateY(0); /* 表示 */
+    }
+
+    /* ボトムシートのヘッダー（閉じるボタン用エリア） */
+    .bottom-sheet-header {
+        position: sticky;
+        top: 0;
+        background-color: var(--bg-color);
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+    }
+    
+    /* ドラッグできそうなハンドルバー */
+    .sheet-handle-bar {
+        width: 40px;
+        height: 5px;
+        background-color: var(--border-color);
+        border-radius: 10px;
+    }
+
+    /* スマホ用 固定アクションバー */
+    .mobile-action-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--border-color);
+        padding: 1rem;
+        display: flex;
+        gap: 1rem;
+        z-index: 2500; /* シートより下、コンテンツより上 */
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+
+    .mobile-action-btn {
+        flex: 1;
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-secondary {
+        background-color: var(--surface-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+}
+
+/* UI改善のためのスタイル (共通) */
 .color-picker-ui {
     display: flex;
     align-items: center;
@@ -334,6 +431,20 @@ input[type="checkbox"]:checked + span::after {
     border-radius: 50%;
     border: none;
 }
+/* ★新規追加: 文字色パレット用スタイル */
+.text-color-row {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.text-color-label {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
 .reset-btn {
     background-color: var(--surface-color);
     border: 1px solid var(--border-color);

@@ -41,7 +41,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const subjobSection = document.getElementById('subjobSection');
     const downloadBtn = document.getElementById('downloadBtn');
     
-    const nameColorInputs = document.getElementsByName('nameColor');
+    // ★変更: ラジオボタンではなくカラーピッカーを取得
+    const textColorPicker = document.getElementById('textColorPicker');
 
     const appElement = document.getElementById('app');
     const loaderElement = document.getElementById('loader');
@@ -116,12 +117,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     let state = { 
         font: "'Exo 2', sans-serif", 
         position: '_left',
-        nameColorMode: 'auto'
+        nameColor: '#ffffff' // ★変更: カラーコードで管理
     };
     let imageTransform = { img: null, x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, scale: 1.0, isDragging: false, lastX: 0, lastY: 0 };
     let imageCache = {};
     let isDownloading = false;
     let userHasManuallyPickedColor = false;
+    let userHasManuallyPickedTextColor = false;
     let previousMainJob = '';
 
     const getAssetPath = (options) => {
@@ -135,7 +137,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 langSuffix = '_en';
             }
         }
-        // ★修正: ignorePositionオプションがあれば _left/_right を付けない
         const posSuffix = options.ignorePosition ? '' : state.position; 
         let finalFilename = options.filename;
         return `./assets/images/vertical/${options.category}/${finalFilename}${posSuffix}${langSuffix}.webp`;
@@ -179,15 +180,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const updateState = () => {
-        const selectedColorMode = document.querySelector('input[name="nameColor"]:checked');
-
         state = {
             template: templateSelect.value,
             position: positionSelect.value,
             iconBgColor: iconBgColorPicker.value,
             characterName: nameInput.value,
             font: fontSelect.value,
-            nameColorMode: selectedColorMode ? selectedColorMode.value : 'auto',
+            nameColor: textColorPicker.value, // ★変更: カラーピッカーから取得
             dc: dcSelect.value,
             race: raceSelect.value,
             progress: progressSelect.value,
@@ -228,8 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!config) return;
         const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
 
-        // DC (Frameレイヤー)
-        // ★修正: ignorePosition: true を指定して左右の接尾辞が付かないようにする
+        // DC
         if(state.dc && layerType === 'frame') {
             const dcTheme = state.template.startsWith('Royal') ? 'Royal' : 'Common';
             await drawTinted(ctx, getAssetPath({ 
@@ -344,13 +342,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         ctx.font = `${fontSize}px "${fontName}"`;
         while(ctx.measureText(state.characterName).width > nameArea.width && fontSize > 10) { fontSize--; ctx.font = `${fontSize}px "${fontName}"`; }
         
-        if (state.nameColorMode === 'white') {
-            ctx.fillStyle = '#ffffff';
-        } else if (state.nameColorMode === 'black') {
-            ctx.fillStyle = '#000000';
-        } else {
-            ctx.fillStyle = config.nameColor || '#ffffff';
-        }
+        // ★変更: カラーピッカーの値を直接使用
+        ctx.fillStyle = state.nameColor || '#ffffff';
 
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -436,15 +429,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 stickyIconBgColorPicker.value = newColor;
             }
         }
+
+        if (!userHasManuallyPickedTextColor) {
+            const config = templateConfig[state.template];
+            if (config && config.nameColor) {
+                textColorPicker.value = config.nameColor;
+            }
+        }
+
         await redrawAll();
     });
     positionSelect.addEventListener('change', async () => { updateState(); await redrawAll(); });
     
-    nameColorInputs.forEach(input => {
-        input.addEventListener('change', () => {
-            updateState();
-            debouncedRedrawName();
-        });
+    // ★変更: カラーピッカーの変更イベント
+    textColorPicker.addEventListener('input', () => {
+        userHasManuallyPickedTextColor = true;
+        updateState();
+        debouncedRedrawName();
     });
 
     const handleColorInput = (s, t) => { 
@@ -484,33 +485,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateState();
         const newMainJob = e.target.value;
 
-        if (previousMainJob) {
-            const prevBtn = subjobSection.querySelector(`button[data-value="${previousMainJob}"]`);
-            if (prevBtn) {
-                prevBtn.disabled = false; 
-                prevBtn.style.opacity = '1';
-                prevBtn.style.cursor = 'pointer';
-            }
-        }
-
         if (newMainJob) {
-            const newBtn = subjobSection.querySelector(`button[data-value="${newMainJob}"]`);
-            if (newBtn) {
-                newBtn.classList.remove('active');
-                newBtn.disabled = true;
-                newBtn.style.opacity = '0.5';
-                newBtn.style.cursor = 'not-allowed';
+            const targetBtn = subjobSection.querySelector(`button[data-value="${newMainJob}"]`);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
             }
         }
-
-        previousMainJob = newMainJob; 
+        
         updateState();
         debouncedRedrawMainJob(); 
         debouncedRedrawSubJob();
     });
 
     subjobSection.addEventListener('click', (e) => { 
-        if (e.target.tagName === 'BUTTON' && !e.target.disabled) {
+        if (e.target.tagName === 'BUTTON') {
             e.target.classList.toggle('active'); 
             updateState(); 
             debouncedRedrawSubJob(); 
@@ -593,6 +581,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('scroll', () => { const rect = mainColorPickerSection.getBoundingClientRect(); if (rect.bottom < 50) stickyColorDrawer.classList.remove('is-hidden'); else { stickyColorDrawer.classList.add('is-hidden'); stickyColorDrawer.classList.add('is-closed'); }});
     drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
 
+    const initMobileUI = () => {
+        if (window.innerWidth > 768) return;
+
+        const actionBar = document.createElement('div');
+        actionBar.className = 'mobile-action-bar';
+        
+        const settingsBtn = document.createElement('button');
+        settingsBtn.className = 'mobile-action-btn btn-secondary';
+        settingsBtn.innerHTML = '⚙️ 設定・入力';
+        
+        const saveBtnMobile = document.createElement('button');
+        saveBtnMobile.className = 'mobile-action-btn btn-primary';
+        saveBtnMobile.innerHTML = '📥 画像保存';
+
+        actionBar.appendChild(settingsBtn);
+        actionBar.appendChild(saveBtnMobile);
+        document.body.appendChild(actionBar);
+
+        const controlsPanel = document.querySelector('.controls-panel');
+        
+        const sheetHeader = document.createElement('div');
+        sheetHeader.className = 'bottom-sheet-header';
+        const handleBar = document.createElement('div');
+        handleBar.className = 'sheet-handle-bar';
+        sheetHeader.appendChild(handleBar);
+        
+        controlsPanel.insertBefore(sheetHeader, controlsPanel.firstChild);
+
+        settingsBtn.addEventListener('click', () => {
+            controlsPanel.classList.toggle('is-open');
+        });
+
+        sheetHeader.addEventListener('click', () => {
+            controlsPanel.classList.remove('is-open');
+        });
+
+        saveBtnMobile.addEventListener('click', () => {
+            downloadBtn.click();
+        });
+    };
+
     const initialize = async () => {
         await preloadFonts();
         fontSelect.value = state.font;
@@ -602,6 +631,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         stickyIconBgColorPicker.value = initialColor;
         drawCharacterLayer();
         await redrawAll();
+        initMobileUI(); 
         loaderElement.style.display = 'none';
         appElement.style.visibility = 'visible';
     };
