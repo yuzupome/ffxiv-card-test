@@ -11,20 +11,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const charCtx = characterLayer.getContext('2d');
     const uiCtx = uiLayer.getContext('2d');
     
-    // ★レイヤー分割用のCanvasを作成
-    // Misc（その他パーツ）用
+    // レイヤー分割用のCanvas
     const miscBgCanvas = document.createElement('canvas');     // 背景用
     const miscBgCtx = miscBgCanvas.getContext('2d');
     const miscFrameCanvas = document.createElement('canvas');  // 枠・文字用
     const miscFrameCtx = miscFrameCanvas.getContext('2d');
 
-    // SubJob（サブジョブ）用
-    const subJobBgCanvas = document.createElement('canvas');    // 背景用
+    const subJobBgCanvas = document.createElement('canvas');    // サブジョブ背景
     const subJobBgCtx = subJobBgCanvas.getContext('2d');
-    const subJobFrameCanvas = document.createElement('canvas'); // 枠用
+    const subJobFrameCanvas = document.createElement('canvas'); // サブジョブ枠
     const subJobFrameCtx = subJobFrameCanvas.getContext('2d');
 
-    // MainJob（メインジョブ）用 - メインは一番上でOKなので1枚
     const mainJobCompositeCanvas = document.createElement('canvas');
     const mainJobCtx = mainJobCompositeCanvas.getContext('2d');
 
@@ -64,40 +61,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const CANVAS_WIDTH = 850;
     const CANVAS_HEIGHT = 1200;
 
-    const GOTHIC_PINK_COLOR = '#A142CD';
-    
-    const templateStyleConfig = {
-      'Vanilla': { choiceOptionBg: '#5E4C22', choiceOptionBorder: '#FFF3C2' },
-      'Gothic_ice': { choiceOptionBg: '#ffffff', pageBackground: '#ffffff' },
-      'Snowflake': { choiceOptionBg: '#ffffff', pageBackground: '#ffffff' },
-      'Gothic_lemon': { choiceOptionBg: '#B4D84C' },
-      'Gothic_peach': { choiceOptionBg: GOTHIC_PINK_COLOR }
-    };
-
-    function applyTemplateStyles(templateName) {
-      const config = templateStyleConfig[templateName];
-      const rootStyle = document.documentElement.style;
-
-      if (!config) {
-        rootStyle.removeProperty('--choice-bg-color');
-        rootStyle.removeProperty('--choice-border-color');
-        rootStyle.removeProperty('--main-bg-color');
-        return;
-      }
-
-      if (config.choiceOptionBg) rootStyle.setProperty('--choice-bg-color', config.choiceOptionBg);
-      else rootStyle.removeProperty('--choice-bg-color');
-
-      if (config.choiceOptionBorder) rootStyle.setProperty('--choice-border-color', config.choiceOptionBorder);
-      else rootStyle.removeProperty('--choice-border-color');
-
-      if (config.pageBackground) rootStyle.setProperty('--main-bg-color', config.pageBackground);
-      else rootStyle.removeProperty('--main-bg-color');
-      
-      console.log(`[Style] Template styles applied for: ${templateName}`);
-    }
-
-    // 全Canvasのサイズ設定
     [backgroundLayer, characterLayer, uiLayer, miscBgCanvas, miscFrameCanvas, mainJobCompositeCanvas, subJobBgCanvas, subJobFrameCanvas].forEach(c => {
         c.width = CANVAS_WIDTH;
         c.height = CANVAS_HEIGHT;
@@ -108,25 +71,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         _right: { x: 197, y: 1073, width: 442, height: 70 }
     };
 
+    // ★設定: スプレッドシート(シート1)の内容を反映
+    // Canvasに描画される色設定です
     const templateConfig = {
-        'Gothic_black':   { nameColor: '#ffffff', iconTint: null, defaultBg: '#A142CD', iconTheme: 'Common' },
+        'Gothic_black':   { nameColor: '#ffffff', iconTint: '#ffffff', defaultBg: '#A142CD', iconTheme: 'Common' },
         'Gothic_white':   { nameColor: '#000000', iconTint: '#000000', defaultBg: '#6CD9D6', iconTheme: 'Common' },
-        'Gothic_pink':    { nameColor: '#ffffff', iconTint: null, defaultBg: '#A142CD', iconTheme: 'Common' },
-        'Gothic_ice':     { nameColor: '#ffffff', iconTint: null, defaultBg: '#A142CD', iconTheme: 'Common' },
-        'Gothic_lemon':   { nameColor: '#ffffff', iconTint: null, defaultBg: '#A142CD', iconTheme: 'Common' },
-        'Gothic_mint':    { nameColor: '#ffffff', iconTint: null, defaultBg: '#A142CD', iconTheme: 'Common' },
-        'Gothic_peach':   { nameColor: '#ffffff', iconTint: null, defaultBg: '#A142CD', iconTheme: 'Common' },
-        'Neon_mono':      { nameColor: '#ffffff', iconTint: null, defaultBg: '#B70016', iconTheme: 'Common' },
-        'Neon_duotone':   { nameColor: '#ffffff', iconTint: null, defaultBg: { primary: '#FFF500', secondary: '#80FF00'}, iconTheme: 'Common' },
-        'Neon_meltdown':  { nameColor: '#ffffff', iconTint: null, defaultBg: { primary: '#FF00CF', secondary: '#00A3FF'}, iconTheme: 'Common' },
-        'Neon_midnight':  { nameColor: '#ffffff', iconTint: null, defaultBg: '#0000CD', iconTheme: 'Common' },
-        'Water':          { nameColor: '#ffffff', iconTint: null, defaultBg: '#FFFFFF', iconTheme: 'Common' },
+        'Gothic_pink':    { nameColor: '#ffffff', iconTint: null,      defaultBg: '#A142CD', iconTheme: 'Common' },
+        'Gothic_ice':     { nameColor: '#ffffff', iconTint: null,      defaultBg: '#ffffff', iconTheme: 'Common' },
+        'Gothic_lemon':   { nameColor: '#ffffff', iconTint: null,      defaultBg: '#B4D84C', iconTheme: 'Common' },
+        'Gothic_mint':    { nameColor: '#ffffff', iconTint: null,      defaultBg: '#DEE86E', iconTheme: 'Common' },
+        'Gothic_peach':   { nameColor: '#ffffff', iconTint: null,      defaultBg: '#A142CD', iconTheme: 'Common' },
+        'Neon_mono':      { nameColor: '#ffffff', iconTint: null,      defaultBg: '#B70016', iconTheme: 'Common' },
+        'Neon_duotone':   { nameColor: '#ffffff', iconTint: null,      defaultBg: { primary: '#FFF500', secondary: '#80FF00'}, iconTheme: 'Common' },
+        'Neon_meltdown':  { nameColor: '#ffffff', iconTint: null,      defaultBg: { primary: '#FF00CF', secondary: '#00A3FF'}, iconTheme: 'Common' },
+        'Neon_midnight':  { nameColor: '#ffffff', iconTint: null,      defaultBg: '#0000CD', iconTheme: 'Common' },
+        'Water':          { nameColor: '#ffffff', iconTint: null,      defaultBg: '#FFFFFF', iconTheme: 'Common' },
         'Lovely_heart':   { nameColor: '#E1C8D2', iconTint: '#E1C8D2', defaultBg: '#D34669', iconTheme: 'Common' },
         'Royal_garnet':   { nameColor: '#A2850A', iconTint: '#A2850A', defaultBg: '#000000', iconTheme: 'Royal' },
         'Royal_sapphire': { nameColor: '#A2850A', iconTint: '#A2850A', defaultBg: '#000000', iconTheme: 'Royal' },
-        'Royal_aventurine': { nameColor: '#A2850A', iconTint: '#A2850A', defaultBg: '#000000', iconTheme: 'Royal' },
-        'Snowflake':      { nameColor: '#000000', iconTint: '#000000', defaultBg: '#FFFFFF', iconTheme: 'Common' },
-        'Vanilla':        { nameColor: '#000000', iconTint: '#000000', defaultBg: '#FFFFFF', iconTheme: 'Common' }
+        'Royal_aventurine': { nameColor: '#A2850A', iconTint: '#A2850A', defaultBg: '#6B0808', iconTheme: 'Royal' },
+        'Snowflake':      { nameColor: '#000000', iconTint: '#ffffff', defaultBg: '#ffffff', iconTheme: 'Common' },
+        'Vanilla':        { nameColor: '#000000', iconTint: '#FFF3C2', defaultBg: '#5E4C22', iconTheme: 'Common' }
     };
 
     const currentLang = document.documentElement.lang || 'ja';
@@ -244,19 +209,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         await drawTinted(charCtx, getAssetPath({ category: 'base', filename: `${state.template}_cp` }));
     };
 
-    // ★修正: レイヤータイプ ('bg' か 'frame') に応じて描画するものを分ける
     const drawMiscParts = async (ctx, layerType) => {
         const config = templateConfig[state.template];
         if (!config) return;
         const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
 
-        // DC (文字なのでFrameレイヤー)
+        // DC
         if(state.dc && layerType === 'frame') {
             const dcTheme = state.template.startsWith('Royal') ? 'Royal' : 'Common';
             await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `${dcTheme}_dc_${state.dc}` }), config.iconTint);
         }
         
-        // Race (背景と枠)
+        // Race
         const raceValue = raceAssetMap[state.race] || state.race;
         if (raceValue) {
             if (layerType === 'bg') {
@@ -267,7 +231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        // Progress (背景、文字、枠)
+        // Progress
         if (state.progress) {
             const stages = ['shinsei', 'souten', 'guren', 'shikkoku', 'gyougetsu', 'ougon'];
             if (layerType === 'bg') {
@@ -286,8 +250,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // Playstyle (背景のみ)
-        const playstyleBgNumMap = { leveling: '01', raid: '02', pvp: '03', dd: '04', hunt: '05', map: '06', gatherer: '07', crafter: '08', gil: '09', perform: '10', streaming: '11', glam: '12', studio: '13', housing: '14', screenshot: '15', drawing: '16', roleplay: '17' };
+        // ★設定: プレイスタイルの画像番号紐づけ（シート2の内容）
+        const playstyleBgNumMap = {
+            leveling: '01',
+            raid: '09',      // 修正: 2->9
+            pvp: '03',
+            dd: '12',        // 修正: 4->12
+            hunt: '07',      // 修正: 5->7
+            map: '02',       // 修正: 6->2
+            gatherer: '08',  // 修正: 7->8
+            crafter: '06',   // 修正: 8->6
+            gil: '05',       // 修正: 9->5
+            perform: '10',
+            streaming: '14', // 修正: 11->14
+            glam: '11',      // 修正: 12->11
+            studio: '13',
+            housing: '04',   // 修正: 14->4
+            screenshot: '15',
+            drawing: '16',
+            roleplay: '17'
+        };
+
         if (layerType === 'bg') {
             for (const style of state.playstyles) {
                 const bgNum = playstyleBgNumMap[style];
@@ -295,7 +278,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // Time (背景と枠)
+        // Time
         for (const time of state.playtimes) {
             if (layerType === 'bg') {
                 await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_time_${time}_bg` }), getIconBgColor('time'));
@@ -305,7 +288,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // Raid (背景のみ)
+        // Raid
         if (layerType === 'bg') {
             for (const diff of state.difficulties) {
                 await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_raid_${diff}_bg` }), getIconBgColor('raid'));
@@ -313,12 +296,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // メインジョブは常にフレームの上（文字扱い）なので1パターンのみ
     const drawMainJobIcon = async (ctx) => {
         if(state.mainjob) await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${state.mainjob}_main` }), templateConfig[state.template].iconTint);
     };
 
-    // ★修正: サブジョブも背景と枠に分割
     const drawSubJobParts = async (ctx, layerType) => {
         const config = templateConfig[state.template];
         for (const job of state.subjobs) {
@@ -354,7 +335,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         ctx.fillText(state.characterName, nameArea.x + nameArea.width / 2, nameArea.y + nameArea.height / 2);
     };
 
-    // レイヤーごとの描画関数
     const redrawMiscBg = async () => { miscBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawMiscParts(miscBgCtx, 'bg'); await drawUiLayer(); };
     const redrawMiscFrame = async () => { miscFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawMiscParts(miscFrameCtx, 'frame'); await drawUiLayer(); };
     
@@ -382,25 +362,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const debouncedRedrawName = createDebouncer(redrawName, 200);
     const debouncedTrackColor = createDebouncer((color) => { if(window.dataLayer) window.dataLayer.push({ event: 'select_icon_color', color_code: color }); }, 500);
 
-    // ★重要: UIレイヤーの最終合成順序
     const drawUiLayer = async () => {
         uiCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         const config = templateConfig[state.template];
         if (!config) return;
 
-        // 1. 背景パーツ (bg) を一番下に描画
         uiCtx.drawImage(miscBgCanvas, 0, 0);
         uiCtx.drawImage(subJobBgCanvas, 0, 0);
 
-        // 2. 全体フレームを中間に描画
-        // 自動的に state.position に応じて _left または _right が付加されます
         await drawTinted(uiCtx, getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), config.iconTint);
 
-        // 3. 枠・文字パーツ (frame/text) を一番上に描画
         uiCtx.drawImage(miscFrameCanvas, 0, 0);
         uiCtx.drawImage(subJobFrameCanvas, 0, 0);
-        
-        // 4. メインジョブと名前は常に最前面
         uiCtx.drawImage(mainJobCompositeCanvas, 0, 0);
         await drawNameText(uiCtx);
     };
@@ -408,8 +381,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const redrawAll = async () => {
         updateState();
         await drawTemplateLayer();
-        
-        // 全レイヤー再描画
         await Promise.all([
             drawMiscParts(miscBgCtx, 'bg'),
             drawMiscParts(miscFrameCtx, 'frame'),
@@ -417,13 +388,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             drawSubJobParts(subJobFrameCtx, 'frame'),
             drawMainJobIcon(mainJobCtx)
         ]);
-        
         await drawUiLayer();
     };
 
     templateSelect.addEventListener('change', async () => {
         updateState();
-        applyTemplateStyles(state.template);
+        // ★削除: HTMLの見た目を変える applyTemplateStyles は削除
         
         if (!userHasManuallyPickedColor) {
             const config = templateConfig[state.template];
@@ -525,16 +495,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (imageTransform.img) finalCtx.drawImage(backgroundLayer, 0, 0);
             await drawTinted(finalCtx, getAssetPath({ category: 'base', filename: `${state.template}_cp` }));
             
-            // ★修正: ダウンロード時も正しい順序で描画
             finalCtx.drawImage(miscBgCanvas, 0, 0);
             finalCtx.drawImage(subJobBgCanvas, 0, 0);
-            
             await drawTinted(finalCtx, getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), templateConfig[state.template].iconTint);
-            
             finalCtx.drawImage(miscFrameCanvas, 0, 0);
             finalCtx.drawImage(subJobFrameCanvas, 0, 0);
             finalCtx.drawImage(mainJobCompositeCanvas, 0, 0);
-            
             await drawNameText(finalCtx);
             
             const imageUrl = finalCanvas.toDataURL('image/jpeg', 0.92);
@@ -556,9 +522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         stickyIconBgColorPicker.value = initialColor || '#CCCCCC';
         drawCharacterLayer();
         await redrawAll();
-        
-        applyTemplateStyles(templateSelect.value);
-
+        // ★削除: applyTemplateStyles は不要
         loaderElement.style.display = 'none';
         appElement.style.visibility = 'visible';
     };
