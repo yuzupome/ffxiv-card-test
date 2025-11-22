@@ -1,5 +1,5 @@
 :root {
-    /* 基本カラー */
+    /* 基本カラー: 白ベースの固定デザイン */
     --bg-color: #ffffff;
     --surface-color: #f9fafb;
     --primary-color: #6b7280;
@@ -17,7 +17,7 @@ body {
   color: var(--text-color);
   margin: 0;
   line-height: 1.6;
-  overflow-x: hidden;
+  overflow-x: hidden; /* 横スクロール防止 */
 }
 
 #app { display: flex; flex-direction: column; min-height: 100vh; }
@@ -146,7 +146,6 @@ select:invalid { color: var(--text-secondary-color); }
 /* ボタン */
 .button-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .button-grid button {
-    /* ★変更: 元の固定色に戻しました */
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
     color: var(--text-secondary-color);

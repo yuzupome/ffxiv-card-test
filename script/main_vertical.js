@@ -71,8 +71,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         _right: { x: 197, y: 1073, width: 442, height: 70 }
     };
 
-    // ★設定: スプレッドシート(シート1)の内容を反映
-    // Canvasに描画される色設定です
+    // ★修正: ジョブIDとファイル名の変換マップ
+    // いただいた画像ファイルの命名規則(dancer, fisher)に準拠
+    const JOB_FILENAME_MAP = {
+        'paladin': 'paladin', 'warrior': 'warrior', 'darkknight': 'darkknight', 'gunbreaker': 'gunbreaker',
+        'whitemage': 'whitemage', 'scholar': 'scholar', 'astrologian': 'astrologian', 'sage': 'sage',
+        'monk': 'monk', 'dragoon': 'dragoon', 'ninja': 'ninja', 'samurai': 'samurai', 'reaper': 'reaper', 'viper': 'viper',
+        'bard': 'bard', 'machinist': 'machinist', 
+        'dancer': 'dancer', // HTML value='dancer' -> Filename 'dancer'
+        'blackmage': 'blackmage', 'summoner': 'summoner', 'redmage': 'redmage', 'pictomancer': 'pictomancer', 'bluemage': 'bluemage',
+        'carpenter': 'carpenter', 'blacksmith': 'blacksmith', 'armorer': 'armorer', 'goldsmith': 'goldsmith',
+        'leatherworker': 'leatherworker', 'weaver': 'weaver', 'alchemist': 'alchemist', 'culinarian': 'culinarian',
+        'miner': 'miner', 'botanist': 'botanist', 
+        'fisher': 'fisher'  // HTML value='fisher' -> Filename 'fisher'
+    };
+
+    // ★設定: テンプレート設定（スプレッドシート内容反映済み）
     const templateConfig = {
         'Gothic_black':   { nameColor: '#ffffff', iconTint: '#ffffff', defaultBg: '#A142CD', iconTheme: 'Common' },
         'Gothic_white':   { nameColor: '#000000', iconTint: '#000000', defaultBg: '#6CD9D6', iconTheme: 'Common' },
@@ -214,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!config) return;
         const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
 
-        // DC
+        // DC (Frameレイヤー)
         if(state.dc && layerType === 'frame') {
             const dcTheme = state.template.startsWith('Royal') ? 'Royal' : 'Common';
             await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `${dcTheme}_dc_${state.dc}` }), config.iconTint);
@@ -250,22 +264,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // ★設定: プレイスタイルの画像番号紐づけ（シート2の内容）
+        // Playstyle (シート2の内容反映)
         const playstyleBgNumMap = {
             leveling: '01',
-            raid: '09',      // 修正: 2->9
+            raid: '09',
             pvp: '03',
-            dd: '12',        // 修正: 4->12
-            hunt: '07',      // 修正: 5->7
-            map: '02',       // 修正: 6->2
-            gatherer: '08',  // 修正: 7->8
-            crafter: '06',   // 修正: 8->6
-            gil: '05',       // 修正: 9->5
+            dd: '12',
+            hunt: '07',
+            map: '02',
+            gatherer: '08',
+            crafter: '06',
+            gil: '05',
             perform: '10',
-            streaming: '14', // 修正: 11->14
-            glam: '11',      // 修正: 12->11
+            streaming: '14',
+            glam: '11',
             studio: '13',
-            housing: '04',   // 修正: 14->4
+            housing: '04',
             screenshot: '15',
             drawing: '16',
             roleplay: '17'
@@ -297,17 +311,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const drawMainJobIcon = async (ctx) => {
-        if(state.mainjob) await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${state.mainjob}_main` }), templateConfig[state.template].iconTint);
+        const filename = JOB_FILENAME_MAP[state.mainjob] || state.mainjob;
+        if(state.mainjob) await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_main` }), templateConfig[state.template].iconTint);
     };
 
     const drawSubJobParts = async (ctx, layerType) => {
         const config = templateConfig[state.template];
         for (const job of state.subjobs) {
+            const filename = JOB_FILENAME_MAP[job] || job;
+            
             if (layerType === 'bg') {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_job_${job}_sub_bg` }), getIconBgColor('subjob'));
+                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_job_${filename}_sub_bg` }), getIconBgColor('subjob'));
             }
             if (layerType === 'frame') {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${job}_sub_frame` }), config.iconTint);
+                await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_sub_frame` }), config.iconTint);
             }
         }
     };
@@ -381,6 +398,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const redrawAll = async () => {
         updateState();
         await drawTemplateLayer();
+        
+        // ★修正: 残像防止のため、中間レイヤーを全てクリアする
+        miscBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        miscFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        subJobBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        subJobFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        mainJobCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
         await Promise.all([
             drawMiscParts(miscBgCtx, 'bg'),
             drawMiscParts(miscFrameCtx, 'frame'),
@@ -393,13 +418,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     templateSelect.addEventListener('change', async () => {
         updateState();
-        // ★削除: HTMLの見た目を変える applyTemplateStyles は削除
         
         if (!userHasManuallyPickedColor) {
             const config = templateConfig[state.template];
-            const newColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : config.defaultBg;
-            iconBgColorPicker.value = newColor || '#CCCCCC';
-            stickyIconBgColorPicker.value = newColor || '#CCCCCC';
+            if (config) {
+                let newColor = '#CCCCCC';
+                if (typeof config.defaultBg === 'object') {
+                    newColor = config.defaultBg.primary;
+                } else if (config.defaultBg) {
+                    newColor = config.defaultBg;
+                }
+                iconBgColorPicker.value = newColor;
+                stickyIconBgColorPicker.value = newColor;
+            }
         }
         await redrawAll();
     });
@@ -412,15 +443,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    const handleColorInput = (s, t) => { userHasManuallyPickedColor = true; t.value = s.value; updateState(); debouncedRedrawMisc(); debouncedRedrawSubJob(); debouncedTrackColor(s.value); };
+    const handleColorInput = (s, t) => { 
+        userHasManuallyPickedColor = true; 
+        t.value = s.value; 
+        updateState(); 
+        debouncedRedrawMisc(); 
+        debouncedRedrawSubJob(); 
+        debouncedTrackColor(s.value); 
+    };
     iconBgColorPicker.addEventListener('input', () => handleColorInput(iconBgColorPicker, stickyIconBgColorPicker));
     stickyIconBgColorPicker.addEventListener('input', () => handleColorInput(stickyIconBgColorPicker, iconBgColorPicker));
+    
     const resetColorAction = () => {
         userHasManuallyPickedColor = false;
         const config = templateConfig[templateSelect.value];
-        const defaultColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : config.defaultBg;
-        iconBgColorPicker.value = defaultColor || '#CCCCCC';
-        stickyIconBgColorPicker.value = defaultColor || '#CCCCCC';
+        let defaultColor = '#CCCCCC';
+        if (config) {
+            if (typeof config.defaultBg === 'object') {
+                defaultColor = config.defaultBg.primary;
+            } else if (config.defaultBg) {
+                defaultColor = config.defaultBg;
+            }
+        }
+        iconBgColorPicker.value = defaultColor;
+        stickyIconBgColorPicker.value = defaultColor;
         updateState();
         debouncedRedrawMisc();
         debouncedRedrawSubJob();
@@ -429,14 +475,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     stickyResetColorBtn.addEventListener('click', resetColorAction);
     [dcSelect, raceSelect, progressSelect].forEach(el => el.addEventListener('change', () => { updateState(); debouncedRedrawMisc(); }));
     [styleButtonsContainer, playtimeOptionsContainer, difficultyOptionsContainer].forEach(c => c.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') e.target.classList.toggle('active'); if (e.target.tagName === 'BUTTON' || e.target.type === 'checkbox') { updateState(); debouncedRedrawMisc(); }}));
+    
     mainjobSelect.addEventListener('change', (e) => {
         updateState();
         const newMainJob = e.target.value;
-        if (previousMainJob) { const prevBtn = subjobSection.querySelector(`button[data-value="${previousMainJob}"]`); if (prevBtn) prevBtn.classList.remove('active'); }
-        if (newMainJob) { const newBtn = subjobSection.querySelector(`button[data-value="${newMainJob}"]`); if (newBtn) newBtn.classList.add('active'); }
-        previousMainJob = newMainJob; updateState(); debouncedRedrawMainJob(); debouncedRedrawSubJob();
+
+        if (previousMainJob) {
+            const prevBtn = subjobSection.querySelector(`button[data-value="${previousMainJob}"]`);
+            if (prevBtn) {
+                prevBtn.disabled = false; 
+                prevBtn.style.opacity = '1';
+                prevBtn.style.cursor = 'pointer';
+            }
+        }
+
+        if (newMainJob) {
+            const newBtn = subjobSection.querySelector(`button[data-value="${newMainJob}"]`);
+            if (newBtn) {
+                newBtn.classList.remove('active');
+                newBtn.disabled = true;
+                newBtn.style.opacity = '0.5';
+                newBtn.style.cursor = 'not-allowed';
+            }
+        }
+
+        previousMainJob = newMainJob; 
+        updateState();
+        debouncedRedrawMainJob(); 
+        debouncedRedrawSubJob();
     });
-    subjobSection.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { e.target.classList.toggle('active'); updateState(); debouncedRedrawSubJob(); }});
+
+    subjobSection.addEventListener('click', (e) => { 
+        if (e.target.tagName === 'BUTTON' && !e.target.disabled) {
+            e.target.classList.toggle('active'); 
+            updateState(); 
+            debouncedRedrawSubJob(); 
+        }
+    });
+
     nameInput.addEventListener('input', () => { updateState(); debouncedRedrawName(); });
     fontSelect.addEventListener('change', () => { updateState(); debouncedRedrawName(); });
     uploadImageInput.addEventListener('change', (e) => {
@@ -517,12 +593,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         await preloadFonts();
         fontSelect.value = state.font;
         const config = templateConfig[templateSelect.value];
-        const initialColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : config.defaultBg;
-        iconBgColorPicker.value = initialColor || '#CCCCCC';
-        stickyIconBgColorPicker.value = initialColor || '#CCCCCC';
+        const initialColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config && config.defaultBg) ? config.defaultBg : '#CCCCCC';
+        iconBgColorPicker.value = initialColor;
+        stickyIconBgColorPicker.value = initialColor;
         drawCharacterLayer();
         await redrawAll();
-        // ★削除: applyTemplateStyles は不要
         loaderElement.style.display = 'none';
         appElement.style.visibility = 'visible';
     };
