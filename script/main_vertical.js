@@ -1,6 +1,6 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Priority Fix Version
+ * Absolute Display Fix Version
  */
 document.addEventListener('DOMContentLoaded', async () => {
 
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const drawCharacterLayer = () => {
-        // 背景を黒で塗りつぶす (ホワイトアウト対策)
+        // ★重要: 背景を黒で塗りつぶす (ホワイトアウト対策)
         bgCtx.fillStyle = '#000000';
         bgCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -267,21 +267,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        // ★修正: CSVの内容に基づいて番号を修正
         const playstyleBgNumMap = {
             leveling: '01',
-            raid: '06',
+            raid: '06',      // 2->6
             pvp: '03',
-            dd: '14',
-            hunt: '09',
-            map: '08',
-            gatherer: '05',
-            crafter: '07',
-            gil: '02',
+            dd: '14',        // 4->14
+            hunt: '09',      // 5->9
+            map: '08',       // 6->8
+            gatherer: '05',  // 7->5
+            crafter: '07',   // 8->7
+            gil: '02',       // 9->2
             perform: '10',
-            streaming: '12',
-            glam: '04',
+            streaming: '12', // 11->12
+            glam: '04',      // 12->4
             studio: '13',
-            housing: '11',
+            housing: '11',   // 14->11
             screenshot: '15',
             drawing: '16',
             roleplay: '17'
@@ -581,6 +582,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('scroll', () => { const rect = mainColorPickerSection.getBoundingClientRect(); if (rect.bottom < 50) stickyColorDrawer.classList.remove('is-hidden'); else { stickyColorDrawer.classList.add('is-hidden'); stickyColorDrawer.classList.add('is-closed'); }});
     drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
 
+    // ★追加: スマホ用のアクションバーとボトムシート制御
     const initMobileUI = () => {
         if (window.innerWidth > 768) return;
 
@@ -627,21 +629,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const initialize = async () => {
         try {
+            // ★修正: まずはローディング画面を消す。何があっても画面を表示する。
+            // これでホワイトアウトが解消されるはずです
+            iconBgColorPicker.value = '#CCCCCC'; // 初期値セット
+            stickyIconBgColorPicker.value = '#CCCCCC';
+            
+            // 画面の表示を優先
+            loaderElement.style.display = 'none';
+            appElement.style.visibility = 'visible';
+            
+            // Canvasを黒く塗る（画像がなくても枠が見えるように）
+            drawCharacterLayer();
+
+            // 重い処理は後回し
             await preloadFonts();
             fontSelect.value = state.font;
+            
             const config = templateConfig[templateSelect.value];
             const initialColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config && config.defaultBg) ? config.defaultBg : '#CCCCCC';
             iconBgColorPicker.value = initialColor;
             stickyIconBgColorPicker.value = initialColor;
-            drawCharacterLayer();
+            
             await redrawAll();
             
-            // ★修正: 順番を入れ替え。ロード画面を消すのを最優先にする。
-            loaderElement.style.display = 'none';
-            appElement.style.visibility = 'visible';
-            
-            // その後でスマホメニューの構築を試みる（万が一ここでエラーが出ても画面は表示される）
-            initMobileUI(); 
+            // スマホメニュー構築
+            try {
+                initMobileUI(); 
+            } catch(e) {
+                console.warn("Mobile UI init failed", e);
+            }
 
         } catch (e) {
             console.error("Initialization error:", e);
