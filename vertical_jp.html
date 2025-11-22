@@ -22,7 +22,8 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            background-color: var(--bg-color); /* ★修正: 変数名を正しいものに変更 */
+            /* ★修正: 変数名を正しいもの(--bg-color)に変更 */
+            background-color: var(--bg-color); 
             padding-top: 0;
             padding-bottom: 10px;
             border-bottom: 1px solid var(--border-color);
@@ -93,7 +94,7 @@
         <aside class="controls-panel">
             <div id="controls-jp" class="controls-container">
                 <div id="controls">
-                    <!-- 1. TemplateとLayoutを統合して省スペース化 -->
+                    <!-- TemplateとLayoutを統合 -->
                     <div class="control-section">
                         <div class="grid-col-2">
                             <div>
@@ -154,7 +155,7 @@
                             </select>
                         </div>
                         
-                        <!-- 2. 文字色: CSSクラスを使用して記述 -->
+                        <!-- 文字色: カラーパレット -->
                         <div class="text-color-row">
                             <span class="text-color-label">Text Color</span>
                             <div class="color-picker-ui">
@@ -209,7 +210,7 @@
                         </div>
                     </div>
 
-                    <!-- 3. Main/Sub Job を Profile の下に移動 -->
+                    <!-- Main/Sub Job -->
                     <div class="control-section">
                         <h2 class="section-title">Main Job</h2>
                         <select id="mainjobSelect" required>
@@ -226,7 +227,7 @@
                         </div>
                     </div>
 
-                    <!-- 4. Play Style の並び替え -->
+                    <!-- Play Style (順番修正済み) -->
                     <div class="control-section">
                         <h2 class="section-title">Play Style</h2>
                         <div id="styleButtons" class="button-grid">

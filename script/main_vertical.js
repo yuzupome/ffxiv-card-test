@@ -1,6 +1,6 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Complete Fixed Version
+ * Final Fixed Version
  */
 document.addEventListener('DOMContentLoaded', async () => {
 
@@ -207,6 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const drawCharacterLayer = () => {
+        // ★重要: 背景を黒で塗りつぶす (ホワイトアウト対策)
         bgCtx.fillStyle = '#000000';
         bgCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -556,6 +557,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const finalCtx = finalCanvas.getContext('2d');
             if (imageTransform.img) finalCtx.drawImage(backgroundLayer, 0, 0);
             else {
+                // ★修正: ダウンロード時も黒背景を適用
                 finalCtx.fillStyle = '#000000';
                 finalCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             }
