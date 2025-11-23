@@ -1,30 +1,7 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * High Resolution + Single Canvas Optimized
+ * Production Ready (No Debug Mode)
  */
-
-const initDebugConsole = () => {
-    const consoleDiv = document.createElement('div');
-    consoleDiv.id = 'debug-console';
-    consoleDiv.style.cssText = `
-        position: fixed; bottom: 0; left: 0; width: 100%; height: 20vh;
-        background: rgba(0, 0, 0, 0.85); color: #00ff00;
-        font-family: monospace; font-size: 10px;
-        overflow-y: scroll; z-index: 99999;
-        padding: 10px; border-top: 2px solid #00ff00;
-        pointer-events: none; display: none;
-    `;
-    document.body.appendChild(consoleDiv);
-
-    window.logToScreen = (msg, type = 'INFO') => {
-        console.log(`[${type}] ${msg}`);
-        const line = document.createElement('div');
-        line.textContent = `> ${msg}`;
-        if(type === 'ERROR') line.style.color = 'red';
-        consoleDiv.appendChild(line);
-    };
-};
-// initDebugConsole();
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -37,10 +14,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
         
-        // ★修正: 画質優先のため、スマホでも解像度を下げない (1.0)
-        // Canvas枚数を1枚に減らしたため、これで耐えられるはずです
-        const SCALE_FACTOR = 1.0; 
-        
+        // スマホなら内部解像度を0.5倍にしてメモリを節約
+        // ※もし画質が気になる場合は 1.0 に戻しても今の構成なら動く可能性が高いです
+        const SCALE_FACTOR = isMobile ? 0.5 : 1.0;
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
 
@@ -48,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const canvas = document.getElementById('preview-canvas');
         if (!canvas) throw new Error("Canvas element 'preview-canvas' not found!");
         
-        // 不透明モード(alpha: false)はメモリ節約に効くので維持
+        // 不透明モードでコンテキスト作成（メモリ節約）
         const ctx = canvas.getContext('2d', { alpha: false });
 
         // サイズ適用
@@ -83,7 +59,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mainColorPickerSection = document.getElementById('main-color-picker-section');
         const iconBgColorPicker = document.getElementById('iconBgColorPicker');
         const resetColorBtn = document.getElementById('resetColorBtn');
-        // 右側ドロワー関連は削除（HTMLに残っていても無視される）
+        const stickyIconBgColorPicker = document.getElementById('stickyIconBgColorPicker');
+        const stickyResetColorBtn = document.getElementById('stickyResetColorBtn');
 
         const NAME_COORDS = {
             _left:  { x: 211, y: 1073, width: 442, height: 70 },
@@ -136,7 +113,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         let userHasManuallyPickedColor = false;
         let userHasManuallyPickedTextColor = false;
 
-        // --- 4. ヘルパー関数群 ---
         const getAssetPath = (options) => {
             const isEn = currentLang === 'en';
             let langSuffix = '';
@@ -153,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
                 img.onload = () => { imageCache[src] = img; resolve(img); };
-                img.onerror = () => { resolve(null); };
+                img.onerror = () => { console.error(`Failed to load: ${src}`); resolve(null); };
                 img.src = src;
             });
         };
@@ -391,8 +367,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!imageTransform.isDragging || !imageTransform.img) return;
             e.preventDefault();
             const loc = isTouch ? e.touches[0] : e;
-            const dx = (loc.clientX - imageTransform.lastX) * 2; 
-            const dy = (loc.clientY - imageTransform.lastY) * 2;
+            // マウス移動量をBASE_WIDTH基準に補正
+            const dx = (loc.clientX - imageTransform.lastX) * (1 / SCALE_FACTOR); 
+            const dy = (loc.clientY - imageTransform.lastY) * (1 / SCALE_FACTOR);
             imageTransform.x += dx; imageTransform.y += dy; imageTransform.lastX = loc.clientX; imageTransform.lastY = loc.clientY; 
             redrawAll(); 
         };
@@ -442,23 +419,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.addEventListener('scroll', () => { const rect = mainColorPickerSection.getBoundingClientRect(); if (rect.bottom < 50) stickyColorDrawer.classList.remove('is-hidden'); else { stickyColorDrawer.classList.add('is-hidden'); stickyColorDrawer.classList.add('is-closed'); }});
         drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
 
-        const initMobileUI = () => {
-            if (window.innerWidth > 768) return;
-            const actionBar = document.createElement('div'); actionBar.className = 'mobile-action-bar';
-            const settingsBtn = document.createElement('button'); settingsBtn.className = 'mobile-action-btn btn-secondary'; settingsBtn.innerHTML = '⚙️ 設定・入力';
-            const saveBtnMobile = document.createElement('button'); saveBtnMobile.className = 'mobile-action-btn btn-primary'; saveBtnMobile.innerHTML = '📥 画像保存';
-            actionBar.appendChild(settingsBtn); actionBar.appendChild(saveBtnMobile); document.body.appendChild(actionBar);
-            const controlsPanel = document.querySelector('.controls-panel');
-            if (!controlsPanel) return;
-            const sheetHeader = document.createElement('div'); sheetHeader.className = 'bottom-sheet-header';
-            const handleBar = document.createElement('div'); handleBar.className = 'sheet-handle-bar';
-            sheetHeader.appendChild(handleBar);
-            controlsPanel.insertBefore(sheetHeader, controlsPanel.firstChild);
-            settingsBtn.addEventListener('click', () => { controlsPanel.classList.toggle('is-open'); });
-            sheetHeader.addEventListener('click', () => { controlsPanel.classList.remove('is-open'); });
-            saveBtnMobile.addEventListener('click', () => { downloadBtn.click(); });
-        };
-
         const initialize = async () => {
             try {
                 iconBgColorPicker.value = '#CCCCCC';
@@ -475,10 +435,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 stickyIconBgColorPicker.value = initialColor;
                 
                 await redrawAll();
-                try { initMobileUI(); } catch(e) { console.warn("Mobile UI init failed", e); }
-                window.logToScreen('Init complete.', 'SUCCESS');
             } catch (e) {
-                window.logToScreen(`Init failed: ${e.message}`, 'ERROR');
+                console.error("Initialization error:", e);
                 loaderElement.style.display = 'none';
                 appElement.style.visibility = 'visible';
             }
@@ -486,6 +444,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         initialize();
 
     } catch (mainError) {
-        window.logToScreen(`Script Error: ${mainError.message}`, 'ERROR');
+        console.error(mainError);
     }
 });
