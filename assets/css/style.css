@@ -1,3 +1,5 @@
+/* (これまでの内容はそのまま維持し、スマホ用レイアウト部分だけ微調整) */
+
 :root {
     --bg-color: #ffffff;
     --surface-color: #f9fafb;
@@ -69,11 +71,8 @@ body.generator-page #app { visibility: hidden; }
     position: relative;
     width: 100%;
     max-width: 100%;
-    
-    /* デフォルトは高さを確保（スマホ・共通） */
     height: 0;
-    padding-top: 141.18%; /* 1200 / 850 = 1.41... */
-    
+    padding-top: 141.18%; 
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid var(--border-color);
@@ -120,14 +119,11 @@ body.generator-page #app { visibility: hidden; }
     }
 
     .canvas-wrapper {
-        /* ★修正: PCではpaddingハックを解除し、高さを明示的に指定してつぶれるのを防ぐ */
         padding-top: 0 !important;
-        height: 80vh !important; /* 画面の80%の高さを確保 */
-        
-        /* アスペクト比に基づいて幅を自動計算 */
-        aspect-ratio: 850 / 1200;
+        height: auto !important;
+        max-height: calc(100vh - 120px) !important;
         width: auto !important;
-        
+        aspect-ratio: 850 / 1200;
         margin-left: auto;
         margin-right: auto;
         border-radius: 12px;
@@ -146,27 +142,22 @@ body.generator-page #app { visibility: hidden; }
    ========================================= */
 @media (max-width: 768px) {
     .preview-panel {
-        position: sticky; /* 上部固定 */
-        top: 0;           /* ★修正: 最上部から固定 */
-        
-        /* 背景をつけて透けないようにする */
+        position: sticky;
+        top: 0; 
         background-color: var(--bg-color);
         padding-top: 10px;
-        padding-bottom: 1rem;
+        padding-bottom: 10px; /* 余白を少し詰める */
         border-bottom: 1px solid var(--border-color);
-        margin-bottom: 2rem;
-        
-        /* ヘッダーより上にくるようにZ-index調整（必要なら） */
+        margin-bottom: 1.5rem;
         z-index: 1100; 
     }
     
     .canvas-wrapper {
-        /* ★修正: サイズ制限を撤廃し、元の大きさ（padding-topハック）に戻す */
-        height: 0;
-        padding-top: 141.18%;
-        width: 100%;
-        max-width: 100%;
-        
+        /* 高さを30vh程度に抑えて、下の入力欄を見えやすくする */
+        height: 30vh !important;
+        padding-top: 0 !important;
+        width: auto !important;
+        aspect-ratio: 850 / 1200;
         margin: 0 auto;
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }

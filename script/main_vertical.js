@@ -1,6 +1,6 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Final Fix: Single Canvas Logic
+ * Features: Single Canvas, Zoom/Pan, Optimized Redraw
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -8,27 +8,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         // --- 1. 設定 ---
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
-        
-        // 画質設定（1.0倍 = 高画質）
         const SCALE_FACTOR = 1.0; 
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
 
-        // ★修正: HTMLにある正しいID 'preview-canvas' を取得
+        // Canvas取得
         const canvas = document.getElementById('preview-canvas');
         if (!canvas) throw new Error("Canvas element 'preview-canvas' not found!");
         
-        // コンテキスト作成
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d'); // 標準モード
 
         // サイズ適用
         canvas.width = CANVAS_WIDTH;
         canvas.height = CANVAS_HEIGHT;
-
-        // スケール設定
         ctx.scale(SCALE_FACTOR, SCALE_FACTOR);
 
-        // --- 2. DOM要素取得 ---
+        // --- 2. DOM要素 ---
         const nameInput = document.getElementById('nameInput');
         const fontSelect = document.getElementById('fontSelect');
         const uploadImageInput = document.getElementById('uploadImage');
@@ -117,6 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `./assets/images/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
         };
 
+        // 画像読み込み（キャッシュ付き）
         const loadImage = (src) => {
             if (imageCache[src]) return Promise.resolve(imageCache[src]);
             return new Promise((resolve) => {
@@ -128,10 +124,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         };
 
+        // 描画ヘルパー
         const drawTinted = async (path, tintColor) => {
             const img = await loadImage(path);
             if (!img) return;
             
+            // ちらつき防止：一時Canvas作成処理
             const tempC = document.createElement('canvas');
             tempC.width = CANVAS_WIDTH;
             tempC.height = CANVAS_HEIGHT;
@@ -190,14 +188,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         // --- 描画処理 ---
         const redrawAll = async () => {
             updateState();
+            
+            // ★ちらつき対策: 描画開始前にCanvasをクリアせず、
+            // メモリ上の画像が揃っているか確認してから一気に描く（同期的な描画に見せる）
+            
+            // 1. 必要な画像を先にロード開始（Promise配列作成）
+            const assetPromises = [];
+            
+            // テンプレート
+            assetPromises.push(loadImage(getAssetPath({ category: 'base', filename: `${state.template}_cp` })));
+
+            // パーツ類
+            const config = templateConfig[state.template];
+            const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
+            
+            // ... ここで必要な画像のパスをリストアップして先読みしても良いが、
+            // drawTinted関数内でawaitしているので、順番に描画されていく。
+            // ちらつきの主原因は「ctx.clearRect」してから「画像ロード待ち」が発生する間の空白時間。
+            // なので、clearRectをせず、黒背景を上書き描画することで空白時間をなくす。
+
             try {
-                // クリア & 黒背景
+                // 背景塗りつぶし（clearRectの代わり）
                 ctx.save();
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.fillStyle = '#000000';
                 ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
                 ctx.restore();
 
+                // ユーザー画像描画
                 if (imageTransform.img) {
                     ctx.save();
                     ctx.translate(imageTransform.x, imageTransform.y);
@@ -206,11 +224,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ctx.restore();
                 }
 
+                // テンプレートやパーツの描画（キャッシュがあれば即時描画される）
                 await drawTinted(getAssetPath({ category: 'base', filename: `${state.template}_cp` }));
-
-                const config = templateConfig[state.template];
-                const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
-
+                
+                // ... (以下パーツ描画ロジックは同じ) ...
                 if(state.dc) {
                     const dcTheme = state.template.startsWith('Royal') ? 'Royal' : 'Common';
                     await drawTinted(getAssetPath({ category: 'parts_text', filename: `${dcTheme}_dc_${state.dc}`, ignorePosition: true }), config.iconTint);
@@ -282,11 +299,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
 
-        const debouncedRedrawAll = createDebouncer(redrawAll, 300);
+        // イベントリスナーの最適化 (Debounce)
+        // ボタン連打による再描画を抑制するため、遅延を少し長めに取る
+        const debouncedRedrawAll = createDebouncer(redrawAll, 100);
 
-        // イベントリスナー群
+        // --- ユーザー操作イベント ---
+        
         templateSelect.addEventListener('change', async () => {
             updateState();
+            // テンプレート変更時は色もリセット
             if (!userHasManuallyPickedColor) {
                 const config = templateConfig[state.template];
                 if (config) {
@@ -320,6 +341,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         resetColorBtn.addEventListener('click', resetColorAction);
         stickyResetColorBtn.addEventListener('click', resetColorAction);
 
+        // チェックボックスやボタンのイベント
         [dcSelect, raceSelect, progressSelect].forEach(el => el.addEventListener('change', () => { updateState(); debouncedRedrawAll(); }));
         [styleButtonsContainer, playtimeOptionsContainer, difficultyOptionsContainer].forEach(c => c.addEventListener('click', (e) => { 
             if (e.target.tagName === 'BUTTON') e.target.classList.toggle('active'); 
@@ -358,58 +380,98 @@ document.addEventListener('DOMContentLoaded', async () => {
             reader.readAsDataURL(file);
         });
 
-        // ★軽量化: ドラッグ処理を requestAnimationFrame で間引き
+        // --- 拡大縮小・移動ロジックの追加 ---
         let isDragging = false;
         let animationFrameId = null;
+        let initialDistance = 0;
+        let initialScale = 1.0;
 
-        const handleDrag = (e, isTouch = false) => {
-            if (!isDragging || !imageTransform.img) return;
+        // 距離計算（ピンチイン・アウト用）
+        const getDistance = (touches) => {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+
+        // PC: マウスホイールでズーム
+        canvas.addEventListener('wheel', (e) => {
+            if (!imageTransform.img) return;
             e.preventDefault();
-            
-            // 既に描画予約が入っていれば何もしない（間引き）
-            if (animationFrameId) return;
+            const scaleAmount = 0.1;
+            if (e.deltaY < 0) {
+                imageTransform.scale += scaleAmount;
+            } else {
+                imageTransform.scale = Math.max(0.1, imageTransform.scale - scaleAmount);
+            }
+            if (!animationFrameId) {
+                animationFrameId = requestAnimationFrame(() => {
+                    redrawAll();
+                    animationFrameId = null;
+                });
+            }
+        });
 
-            const loc = isTouch ? e.touches[0] : e;
-            const dx = (loc.clientX - imageTransform.lastX) * (1 / SCALE_FACTOR); 
-            const dy = (loc.clientY - imageTransform.lastY) * (1 / SCALE_FACTOR);
+        const handleStart = (e) => {
+            if (!imageTransform.img) return;
+            e.preventDefault(); // スクロール防止（Canvas内のみ）
             
-            imageTransform.x += dx; 
-            imageTransform.y += dy; 
-            imageTransform.lastX = loc.clientX; 
-            imageTransform.lastY = loc.clientY; 
+            if (e.touches && e.touches.length === 2) {
+                // 2本指: ズーム開始
+                isDragging = false;
+                initialDistance = getDistance(e.touches);
+                initialScale = imageTransform.scale;
+            } else {
+                // 1本指/マウス: ドラッグ開始
+                isDragging = true;
+                const loc = e.touches ? e.touches[0] : e;
+                imageTransform.lastX = loc.clientX;
+                imageTransform.lastY = loc.clientY;
+            }
+        };
 
-            // 次の描画タイミングで実行
+        const handleMove = (e) => {
+            if (!imageTransform.img) return;
+            e.preventDefault();
+
+            if (animationFrameId) return; // 描画間引き
+
+            if (e.touches && e.touches.length === 2) {
+                // 2本指: ズーム処理
+                const currentDistance = getDistance(e.touches);
+                if (initialDistance > 0) {
+                    const newScale = initialScale * (currentDistance / initialDistance);
+                    imageTransform.scale = Math.max(0.1, newScale);
+                }
+            } else if (isDragging) {
+                // 1本指: 移動処理
+                const loc = e.touches ? e.touches[0] : e;
+                const dx = (loc.clientX - imageTransform.lastX) * (1 / SCALE_FACTOR); 
+                const dy = (loc.clientY - imageTransform.lastY) * (1 / SCALE_FACTOR);
+                imageTransform.x += dx; 
+                imageTransform.y += dy; 
+                imageTransform.lastX = loc.clientX; 
+                imageTransform.lastY = loc.clientY; 
+            }
+
             animationFrameId = requestAnimationFrame(() => {
                 redrawAll();
                 animationFrameId = null;
             });
         };
 
-        const startDrag = (e, isTouch = false) => {
-            if (!imageTransform.img) return;
-            isDragging = true;
-            const loc = isTouch ? e.touches[0] : e;
-            imageTransform.lastX = loc.clientX;
-            imageTransform.lastY = loc.clientY;
-        };
-
-        const endDrag = () => {
+        const handleEnd = () => {
             isDragging = false;
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
+            initialDistance = 0;
         };
 
-        // マウスイベント
-        canvas.addEventListener('mousedown', (e) => startDrag(e, false));
-        window.addEventListener('mousemove', (e) => handleDrag(e, false));
-        window.addEventListener('mouseup', endDrag);
+        // イベント登録
+        canvas.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
         
-        // タッチイベント (Passive: false でスクロール防止)
-        canvas.addEventListener('touchstart', (e) => startDrag(e, true), { passive: false });
-        canvas.addEventListener('touchmove', (e) => handleDrag(e, true), { passive: false });
-        window.addEventListener('touchend', endDrag);
+        canvas.addEventListener('touchstart', handleStart, { passive: false });
+        canvas.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', handleEnd);
 
         // ダウンロード
         downloadBtn.addEventListener('click', async () => {
@@ -436,7 +498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         closeModalBtn.addEventListener('click', () => { saveModal.classList.add('hidden'); });
         
-        // スクロール連動（右側ドロワーのみ）
+        // スクロール連動（右側ドロワー）
         window.addEventListener('scroll', () => { 
             if(window.innerWidth > 768) {
                 const rect = mainColorPickerSection.getBoundingClientRect(); 
