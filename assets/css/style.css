@@ -18,10 +18,6 @@ body {
   margin: 0;
   line-height: 1.6;
   overflow-x: hidden;
-  
-  /* ★修正: ページの底に巨大な余白を追加 */
-  /* これにより、どの入力項目でも「画面の真ん中」や「プレビューのすぐ下」までスクロールして */
-  /* 下をスカスカの状態にすることができます */
   padding-bottom: 60vh; 
 }
 
@@ -112,7 +108,6 @@ body.generator-page #app { visibility: hidden; }
    PC用レイアウト (769px以上)
    ========================================= */
 @media (min-width: 769px) {
-    /* PCでは余白が大きすぎると間延びするので調整 */
     body {
         padding-bottom: 0; 
     }
@@ -182,10 +177,10 @@ body.generator-page #app { visibility: hidden; }
         max-width: 90% !important;
         
         height: 0;
-        padding-top: 77.6%;
+        padding-top: 127%; 
         
         margin: 0 auto;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15); /* 小さくなった分、影で存在感を出す */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     }
 }
 
