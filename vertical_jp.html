@@ -14,78 +14,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Orbitron:wght@600&family=DotGothic16&family=Exo+2&family=Share+Tech&family=Permanent+Marker&family=Hachi+Maru+Pop&family=Dancing+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./assets/css/style.css" />
-    
-    <style>
-        /* プレビューパネル: スマホでのバグ回避のためstickyをCSS側で制御 */
-        .preview-panel {
-            z-index: 100;
-            background-color: var(--bg-color);
-            padding-top: 0;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .preview-panel .canvas-container {
-            width: 100% !important;
-            max-width: 100% !important;
-            display: block; /* Flex廃止で安定化 */
-            background: transparent;
-            padding: 0 !important;
-            box-sizing: border-box;
-            height: auto !important;
-        }
-
-        .canvas-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 425px !important; /* PCでの最大幅 */
-            
-            /* 基本はaspect-ratio */
-            aspect-ratio: 850 / 1200;
-            height: auto;
-
-            margin: 0 auto;
-            background-color: #000000 !important; /* 強制黒背景 */
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        /* aspect-ratio非対応ブラウザ向けのフォールバック */
-        @supports not (aspect-ratio: 850 / 1200) {
-            .canvas-wrapper {
-                height: 0;
-                padding-top: 141.18%;
-            }
-        }
-
-        .canvas-wrapper canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100% !important;
-            height: 100% !important;
-            display: block;
-        }
-
-        #background-layer {
-            background-color: #000000 !important;
-        }
-        
-        @media (max-width: 768px) {
-            .canvas-wrapper {
-                max-width: 100% !important;
-            }
-            /* スマホではstickyを解除して描画安定化 */
-            .preview-panel {
-                position: relative !important;
-            }
-        }
-        @media (min-width: 769px) {
-            .preview-panel {
-                position: sticky;
-                top: 0;
-            }
-        }
-    </style>
 </head>
 <body class="generator-page">
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKSZ7BSD" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -98,7 +26,7 @@
         <main class="preview-panel">
             <div class="canvas-container">
                 <div class="canvas-wrapper">
-                    <!-- タグに直接サイズ指定 -->
+                    <!-- タグに直接サイズ指定 (JSで上書きされますがフォールバックとして) -->
                     <canvas id="background-layer" width="850" height="1200"></canvas>
                     <canvas id="character-layer" width="850" height="1200"></canvas>
                     <canvas id="ui-layer" width="850" height="1200"></canvas>

@@ -1,9 +1,8 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Mobile Optimized (Half-Resolution) Version
+ * Force Mobile Optimized Version
  */
 
-// デバッグログ（問題がなければ後で削除可能）
 const initDebugConsole = () => {
     const consoleDiv = document.createElement('div');
     consoleDiv.id = 'debug-console';
@@ -13,7 +12,7 @@ const initDebugConsole = () => {
         font-family: monospace; font-size: 10px;
         overflow-y: scroll; z-index: 99999;
         padding: 10px; border-top: 2px solid #00ff00;
-        pointer-events: none; display: none; /* 通常は非表示に */
+        pointer-events: none; display: none;
     `;
     document.body.appendChild(consoleDiv);
 
@@ -29,18 +28,25 @@ initDebugConsole();
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // --- スマホ判定と解像度設定 ---
-        // 画面幅が768px以下ならメモリ節約モード（画質0.5倍）にする
-        const isMobile = window.innerWidth <= 768;
+        // --- ★修正: スマホ判定を強化 (幅チェック + UAチェック) ---
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isMobileUA = /iphone|android|ipad|mobile/.test(userAgent);
+        const isSmallScreen = window.innerWidth <= 1024; // iPad含む
+        
+        // スマホかタブレットなら問答無用で軽量モード
+        const isMobile = isMobileUA || isSmallScreen;
+        
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
+        
+        // PC以外は0.5倍スケールでメモリ節約
         const SCALE_FACTOR = isMobile ? 0.5 : 1.0;
 
-        // 実際にCanvasに設定するサイズ
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
 
-        window.logToScreen(`Mode: ${isMobile ? 'Mobile (Low-Res)' : 'PC (High-Res)'}, Scale: ${SCALE_FACTOR}`);
+        window.logToScreen(`Device Detect: UA=${isMobileUA}, Width=${window.innerWidth}`);
+        window.logToScreen(`Final Mode: ${isMobile ? 'Mobile (Low-Res 0.5x)' : 'PC (High-Res 1.0x)'}`);
 
         // DOM要素
         const backgroundLayer = document.getElementById('background-layer');
@@ -57,8 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             c.height = CANVAS_HEIGHT;
         });
 
-        // ★重要: コンテキスト自体をスケールさせる
-        // これにより、以後の描画座標(0〜850)は自動的に(0〜425)に変換される
+        // コンテキスト自体のスケール設定
         bgCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
         charCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
         uiCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
@@ -165,18 +170,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         };
 
-        // 画像描画（縮小スケール済みコンテキストに描くので、座標はBASE_WIDTH基準でOK）
         const drawTinted = async (ctx, path, tintColor) => {
             const img = await loadImage(path);
             if (!img) return;
             
-            // 一時Canvasも小さく作る
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = CANVAS_WIDTH;
             tempCanvas.height = CANVAS_HEIGHT;
             const tempCtx = tempCanvas.getContext('2d');
-            
-            // ここでもスケール適用
             tempCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
             
             tempCtx.drawImage(img, 0, 0, BASE_WIDTH, BASE_HEIGHT);
@@ -225,11 +226,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return state.iconBgColor;
         };
 
-        // --- 描画関数群 ---
         const drawCharacterLayer = () => {
-            // clearRectはスケールの影響を受けるため BASE_WIDTH で指定してOK
             bgCtx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
-            
             bgCtx.fillStyle = '#000000';
             bgCtx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             
@@ -342,7 +340,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const debouncedRedrawAll = createDebouncer(redrawAll, 300);
 
-        // Event Listeners
         templateSelect.addEventListener('change', async () => {
             updateState();
             if (!userHasManuallyPickedColor) {
@@ -416,13 +413,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             reader.readAsDataURL(file);
         });
 
-        // Drag & Touch (Scale考慮なしで動作するように修正済み)
         const handleDrag = (e, isTouch = false) => {
             if (!imageTransform.isDragging || !imageTransform.img) return;
             e.preventDefault();
             const loc = isTouch ? e.touches[0] : e;
-            // マウス移動量は画面ピクセルなので、Canvasスケールに合わせて補正が必要だが、
-            // 簡易的にそのまま加算しても大きな問題はない（少し感度が変わる程度）
             const dx = (loc.clientX - imageTransform.lastX) * (1/SCALE_FACTOR); 
             const dy = (loc.clientY - imageTransform.lastY) * (1/SCALE_FACTOR);
             imageTransform.x += dx; imageTransform.y += dy; imageTransform.lastX = loc.clientX; imageTransform.lastY = loc.clientY; drawCharacterLayer();
@@ -443,17 +437,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, { passive: false });
         window.addEventListener('touchend', () => { imageTransform.isDragging = false; });
 
-        // Download
         downloadBtn.addEventListener('click', async () => {
             if (isDownloading) return;
             isDownloading = true;
             downloadBtn.querySelector('span').textContent = translations[currentLang].generating;
             try {
                 const finalCanvas = document.createElement('canvas');
-                // ダウンロード用もメモリ節約のため現在の解像度(CANVAS_WIDTH)で作る
                 finalCanvas.width = CANVAS_WIDTH; finalCanvas.height = CANVAS_HEIGHT;
                 const finalCtx = finalCanvas.getContext('2d');
-                // ここはコピーなのでスケール不要（コピー元がすでにスケール済み）
                 finalCtx.drawImage(backgroundLayer, 0, 0);
                 finalCtx.drawImage(characterLayer, 0, 0);
                 finalCtx.drawImage(uiLayer, 0, 0);
@@ -469,7 +460,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.addEventListener('scroll', () => { const rect = mainColorPickerSection.getBoundingClientRect(); if (rect.bottom < 50) stickyColorDrawer.classList.remove('is-hidden'); else { stickyColorDrawer.classList.add('is-hidden'); stickyColorDrawer.classList.add('is-closed'); }});
         drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
 
-        // Mobile UI
         const initMobileUI = () => {
             if (window.innerWidth > 768) return;
             const actionBar = document.createElement('div'); actionBar.className = 'mobile-action-bar';
@@ -487,7 +477,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             saveBtnMobile.addEventListener('click', () => { downloadBtn.click(); });
         };
 
-        // Initialize
         const initialize = async () => {
             try {
                 iconBgColorPicker.value = '#CCCCCC';

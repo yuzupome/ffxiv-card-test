@@ -57,23 +57,19 @@ body.generator-page #app { visibility: hidden; }
 /* Canvas レイヤー */
 .canvas-container { width: 100%; margin: 0 auto; }
 
-/* Canvasラッパー: デフォルト（スマホ・基本） */
+/* Canvasラッパー: デフォルト（スマホ・基本設定） */
 .canvas-wrapper {
     position: relative;
     width: 100%;
-    /* スマホでは幅いっぱいにしつつ、高さをパディングで確保 */
-    max-width: 425px; 
     
-    /* フォールバック用の高さ確保（スマホのホワイトアウト対策） */
+    /* スマホでは高さをpaddingで物理的に確保（アスペクト比維持のため） */
     height: 0;
     padding-top: 141.18%; /* 1200 / 850 */
     
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    /* スマホ向けの装飾（重いエフェクトは避ける） */
     background-color: #000000 !important;
     margin: 0 auto;
+    border: 1px solid var(--border-color);
 }
 
 .canvas-wrapper canvas {
@@ -176,7 +172,7 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
 .modal-content h3 { margin-top: 0; }
 .modal-content img { max-width: 100%; height: auto; border-radius: 8px; margin-top: 1rem; }
 
-/* --- PCレイアウト修正 (高さ制限) --- */
+/* --- PCレイアウト修正 (高さ制限・完全版) --- */
 @media (min-width: 769px) {
   body { padding-bottom: 0; }
   .content-wrapper { display: flex; flex-direction: row; max-width: 1280px; }
@@ -189,15 +185,22 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
     top: 85px;
   }
 
-  /* ★修正: PCでは高さを画面の85%に制限し、それに合わせて幅を自動調整 */
+  /* ★PC用修正: 高さを85vhに制限し、幅を自動計算で制限する */
+  /* 幅 = 高さ(85vh) * アスペクト比(850/1200) = 85vh * 0.70833 */
   .canvas-wrapper {
-    padding-top: 0 !important; /* スマホ用ハックを解除 */
-    height: 85vh !important;   /* 高さを画面の85%に */
-    width: auto !important;    /* 幅は自動 */
-    aspect-ratio: 850 / 1200;  /* アスペクト比で幅を決定 */
-    max-width: none !important;
+    /* スマホ用のpaddingハックを解除 */
+    padding-top: 0 !important;
+    height: auto !important;
+    
+    /* 幅を最大化しつつ、高さ制限に合わせてキャップをかける */
+    width: 100% !important;
+    max-width: calc(85vh * 0.708333) !important; 
+    
+    aspect-ratio: 850 / 1200;
     margin-left: auto;
     margin-right: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
 
   .controls-panel {
@@ -250,7 +253,13 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
     }
     .btn-secondary { background-color: var(--surface-color); color: var(--text-color); border: 1px solid var(--border-color); }
     .btn-primary { background-color: var(--primary-color); color: white; }
-    .canvas-wrapper { max-width: 100% !important; }
+    
+    /* スマホは装飾をカットして安定性重視 */
+    .canvas-wrapper { 
+        max-width: 100% !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
 }
 
 .color-picker-ui { display: flex; align-items: center; gap: 0.75rem; }
