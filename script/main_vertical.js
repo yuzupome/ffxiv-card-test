@@ -1,9 +1,9 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * DEBUG MODE
+ * Low Memory Version (No Offscreens)
  */
 
-// --- デバッグ用ロガーの設置 ---
+// --- デバッグ用ロガー ---
 const initDebugConsole = () => {
     const consoleDiv = document.createElement('div');
     consoleDiv.id = 'debug-console';
@@ -13,7 +13,7 @@ const initDebugConsole = () => {
         font-family: monospace; font-size: 10px;
         overflow-y: scroll; z-index: 99999;
         padding: 10px; border-top: 2px solid #00ff00;
-        pointer-events: none; /* 下のボタンを押せるように */
+        pointer-events: none;
     `;
     document.body.appendChild(consoleDiv);
 
@@ -30,50 +30,29 @@ const initDebugConsole = () => {
         }
         consoleDiv.appendChild(line);
         consoleDiv.scrollTop = consoleDiv.scrollHeight;
-        console.log(msg); // ブラウザコンソールにも出す
     };
 
-    window.onerror = (msg, url, lineNo, columnNo, error) => {
+    window.onerror = (msg, url, lineNo) => {
         window.logToScreen(`GLOBAL ERROR: ${msg} at line ${lineNo}`, 'ERROR');
         return false;
     };
 };
 
-// デバッグ開始
 initDebugConsole();
-window.logToScreen('Debug script loaded.');
+window.logToScreen('Low Memory Script Loaded.');
 
 document.addEventListener('DOMContentLoaded', async () => {
-    window.logToScreen('DOMContentLoaded event fired.');
-
     try {
         const backgroundLayer = document.getElementById('background-layer');
         const characterLayer = document.getElementById('character-layer');
         const uiLayer = document.getElementById('ui-layer');
         
-        if (!backgroundLayer || !characterLayer || !uiLayer) {
-            throw new Error('Canvas element missing in DOM');
-        }
-
-        window.logToScreen('Canvas elements found.');
-
         const bgCtx = backgroundLayer.getContext('2d');
         const charCtx = characterLayer.getContext('2d');
         const uiCtx = uiLayer.getContext('2d');
         
-        // オフスクリーンCanvas作成
-        const createOffscreen = () => {
-            const c = document.createElement('canvas');
-            c.width = 850; c.height = 1200;
-            return { c, ctx: c.getContext('2d') };
-        };
-
-        const miscBg = createOffscreen();
-        const miscFrame = createOffscreen();
-        const subJobBg = createOffscreen();
-        const subJobFrame = createOffscreen();
-        const mainJobComp = createOffscreen();
-
+        // ★重要: オフスクリーンCanvasを廃止し、直接DOMのCanvasに描画する
+        
         // DOM要素
         const nameInput = document.getElementById('nameInput');
         const fontSelect = document.getElementById('fontSelect');
@@ -185,7 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     resolve(img); 
                 };
                 img.onerror = (e) => { 
-                    window.logToScreen(`Failed to load image: ${src}`, 'ERROR'); 
+                    window.logToScreen(`Failed to load: ${src}`, 'ERROR'); 
                     resolve(null); 
                 };
                 img.src = src;
@@ -193,10 +172,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         const drawTinted = async (ctx, path, tintColor) => {
-            // window.logToScreen(`Drawing: ${path}`); // ログが多すぎるのでコメントアウト
             const img = await loadImage(path);
             if (!img) return;
             
+            // 一時的な小さなCanvasだけ作成（GCされやすい）
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = CANVAS_WIDTH;
             tempCanvas.height = CANVAS_HEIGHT;
@@ -208,6 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tempCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             }
             ctx.drawImage(tempCanvas, 0, 0);
+            // tempCanvasはここでスコープアウトし、GC対象になる
         };
 
         const createDebouncer = (func, delay) => {
@@ -218,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const preloadFonts = () => {
             window.logToScreen('Preloading fonts...');
             const fonts = Array.from(fontSelect.options).filter(o => o.value).map(o => o.value);
-            return Promise.all(fonts.map(font => document.fonts.load(`10px ${font}`).catch(e => window.logToScreen(`Font load error: ${font}`, 'ERROR'))));
+            return Promise.all(fonts.map(font => document.fonts.load(`10px ${font}`).catch(e => window.logToScreen(`Font error: ${font}`, 'ERROR'))));
         };
 
         const updateState = () => {
@@ -248,6 +228,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return state.iconBgColor;
         };
 
+        // --- 描画関数群 (直接 uiCtx などに描画するように変更) ---
+
         const drawCharacterLayer = () => {
             bgCtx.fillStyle = '#000000';
             bgCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -265,53 +247,55 @@ document.addEventListener('DOMContentLoaded', async () => {
             await drawTinted(charCtx, getAssetPath({ category: 'base', filename: `${state.template}_cp` }));
         };
 
-        const drawMiscParts = async (ctx, layerType) => {
+        const drawMiscParts = async (ctx) => {
             const config = templateConfig[state.template];
             if (!config) return;
             const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
 
-            if(state.dc && layerType === 'frame') {
+            // DC
+            if(state.dc) {
                 const dcTheme = state.template.startsWith('Royal') ? 'Royal' : 'Common';
                 await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `${dcTheme}_dc_${state.dc}`, ignorePosition: true }), config.iconTint);
             }
             
+            // Race
             const raceValue = raceAssetMap[state.race] || state.race;
             if (raceValue) {
-                if (layerType === 'bg') await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_race_${raceValue}_bg` }), getIconBgColor('race'));
-                if (layerType === 'frame') await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }), config.iconTint);
+                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_race_${raceValue}_bg` }), getIconBgColor('race'));
+                await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }), config.iconTint);
             }
             
+            // Progress
             if (state.progress) {
                 const stages = ['shinsei', 'souten', 'guren', 'shikkoku', 'gyougetsu', 'ougon'];
-                if (layerType === 'bg') {
-                    if (state.progress === 'all_clear') {
-                        for (const s of stages) await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_progress_${s}_bg` }), getIconBgColor('progress'));
-                        await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: 'Common_progress_all_clear_bg' }), getIconBgColor('progress'));
-                    } else {
-                        const idx = stages.indexOf(state.progress);
-                        if (idx > -1) for (let i = 0; i <= idx; i++) await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_progress_${stages[i]}_bg` }), getIconBgColor('progress'));
-                    }
+                if (state.progress === 'all_clear') {
+                    for (const s of stages) await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_progress_${s}_bg` }), getIconBgColor('progress'));
+                    await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: 'Common_progress_all_clear_bg' }), getIconBgColor('progress'));
+                } else {
+                    const idx = stages.indexOf(state.progress);
+                    if (idx > -1) for (let i = 0; i <= idx; i++) await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_progress_${stages[i]}_bg` }), getIconBgColor('progress'));
                 }
-                if (layerType === 'frame') {
-                    const pFile = state.progress === 'gyougetsu' ? 'gyougetsu' : state.progress;
-                    await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_progress_${pFile}_moji` }), config.iconTint);
-                    await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_progress_${pFile}_frame` }), config.iconTint);
-                }
+                const pFile = state.progress === 'gyougetsu' ? 'gyougetsu' : state.progress;
+                await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_progress_${pFile}_moji` }), config.iconTint);
+                await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_progress_${pFile}_frame` }), config.iconTint);
             }
 
+            // Playstyle
             const playstyleBgNumMap = { leveling: '01', raid: '06', pvp: '03', dd: '14', hunt: '09', map: '08', gatherer: '05', crafter: '07', gil: '02', perform: '10', streaming: '12', glam: '04', studio: '13', housing: '11', screenshot: '15', drawing: '16', roleplay: '17' };
-            if (layerType === 'bg') {
-                for (const style of state.playstyles) {
-                    const bgNum = playstyleBgNumMap[style];
-                    if (bgNum) await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_playstyle_${bgNum}_bg` }), getIconBgColor('playstyle'));
-                }
+            for (const style of state.playstyles) {
+                const bgNum = playstyleBgNumMap[style];
+                if (bgNum) await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_playstyle_${bgNum}_bg` }), getIconBgColor('playstyle'));
             }
+
+            // Playtime
             for (const time of state.playtimes) {
-                if (layerType === 'bg') await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_time_${time}_bg` }), getIconBgColor('time'));
-                if (layerType === 'frame') await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_time_${time}_frame` }), config.iconTint);
+                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_time_${time}_bg` }), getIconBgColor('time'));
+                await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_time_${time}_frame` }), config.iconTint);
             }
-            if (layerType === 'bg') {
-                for (const diff of state.difficulties) await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_raid_${diff}_bg` }), getIconBgColor('raid'));
+
+            // Difficulty
+            for (const diff of state.difficulties) {
+                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_raid_${diff}_bg` }), getIconBgColor('raid'));
             }
         };
 
@@ -320,12 +304,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(state.mainjob) await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_main` }), templateConfig[state.template].iconTint);
         };
 
-        const drawSubJobParts = async (ctx, layerType) => {
+        const drawSubJobParts = async (ctx) => {
             const config = templateConfig[state.template];
             for (const job of state.subjobs) {
                 const filename = JOB_FILENAME_MAP[job] || job;
-                if (layerType === 'bg') await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_job_${filename}_sub_bg` }), getIconBgColor('subjob'));
-                if (layerType === 'frame') await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_sub_frame` }), config.iconTint);
+                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_job_${filename}_sub_bg` }), getIconBgColor('subjob'));
+                await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_sub_frame` }), config.iconTint);
             }
         };
 
@@ -341,47 +325,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             ctx.fillText(state.characterName, nameArea.x + nameArea.width / 2, nameArea.y + nameArea.height / 2);
         };
 
-        const drawUiLayer = async () => {
-            uiCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            const config = templateConfig[state.template];
-            if (!config) return;
-            uiCtx.drawImage(miscBg.c, 0, 0);
-            uiCtx.drawImage(subJobBg.c, 0, 0);
-            await drawTinted(uiCtx, getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), config.iconTint);
-            uiCtx.drawImage(miscFrame.c, 0, 0);
-            uiCtx.drawImage(subJobFrame.c, 0, 0);
-            uiCtx.drawImage(mainJobComp.c, 0, 0);
-            await drawNameText(uiCtx);
-        };
-        
+        // メイン描画フロー
         const redrawAll = async () => {
-            window.logToScreen('Redrawing all...');
+            window.logToScreen('Redrawing (Serial)...');
             updateState();
             
             try {
-                await drawTemplateLayer();
-                window.logToScreen('Template layer drawn.');
-                
-                miscBg.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                miscFrame.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                subJobBg.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                subJobFrame.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                mainJobComp.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                // 1. 背景+キャラ
+                drawCharacterLayer(); // 同期
 
-                // 直列実行
-                await drawMiscParts(miscBg.ctx, 'bg');
-                await drawMiscParts(miscFrame.ctx, 'frame');
-                await drawSubJobParts(subJobBg.ctx, 'bg');
-                await drawSubJobParts(subJobFrame.ctx, 'frame');
-                await drawMainJobIcon(mainJobComp.ctx);
-                window.logToScreen('Parts layers drawn.');
+                // 2. テンプレート（枠）
+                await drawTemplateLayer();
                 
-                await drawUiLayer();
-                window.logToScreen('UI layer composed.', 'SUCCESS');
+                // 3. UIパーツ群 (すべて uiCtx に直接描画していく)
+                uiCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                
+                // パーツ類を順番に重ねていく
+                await drawMiscParts(uiCtx);
+                await drawSubJobParts(uiCtx);
+                
+                // 共通背景枠（UIとアイコンの間）
+                const config = templateConfig[state.template];
+                if (config) {
+                    await drawTinted(uiCtx, getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), config.iconTint);
+                }
+
+                await drawMainJobIcon(uiCtx);
+                await drawNameText(uiCtx);
+                
+                window.logToScreen('Draw Complete.', 'SUCCESS');
             } catch (e) {
-                window.logToScreen(`Redraw failed: ${e.message}`, 'ERROR');
+                window.logToScreen(`Redraw Error: ${e.message}`, 'ERROR');
             }
         };
+
+        // Debounced Redrawers (UIのチラつき防止のため、すべて一括再描画に飛ばす)
+        const debouncedRedrawAll = createDebouncer(redrawAll, 300);
 
         // Event Listeners
         templateSelect.addEventListener('change', async () => {
@@ -402,10 +381,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         
         positionSelect.addEventListener('change', async () => { updateState(); await redrawAll(); });
-        textColorPicker.addEventListener('input', () => { userHasManuallyPickedTextColor = true; updateState(); drawUiLayer(); }); // Debounce省略
+        textColorPicker.addEventListener('input', () => { userHasManuallyPickedTextColor = true; updateState(); debouncedRedrawAll(); });
         
-        // Color Picker Logic
-        const handleColorInput = (s, t) => { userHasManuallyPickedColor = true; t.value = s.value; updateState(); redrawAll(); };
+        const handleColorInput = (s, t) => { userHasManuallyPickedColor = true; t.value = s.value; updateState(); debouncedRedrawAll(); };
         iconBgColorPicker.addEventListener('input', () => handleColorInput(iconBgColorPicker, stickyIconBgColorPicker));
         stickyIconBgColorPicker.addEventListener('input', () => handleColorInput(stickyIconBgColorPicker, iconBgColorPicker));
         
@@ -415,28 +393,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             let defaultColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config && config.defaultBg) ? config.defaultBg : '#CCCCCC';
             iconBgColorPicker.value = defaultColor;
             stickyIconBgColorPicker.value = defaultColor;
-            updateState(); redrawAll();
+            updateState(); debouncedRedrawAll();
         };
         resetColorBtn.addEventListener('click', resetColorAction);
         stickyResetColorBtn.addEventListener('click', resetColorAction);
 
-        // Others
-        [dcSelect, raceSelect, progressSelect].forEach(el => el.addEventListener('change', () => { updateState(); redrawAll(); }));
+        [dcSelect, raceSelect, progressSelect].forEach(el => el.addEventListener('change', () => { updateState(); debouncedRedrawAll(); }));
         [styleButtonsContainer, playtimeOptionsContainer, difficultyOptionsContainer].forEach(c => c.addEventListener('click', (e) => { 
             if (e.target.tagName === 'BUTTON') e.target.classList.toggle('active'); 
-            if (e.target.tagName === 'BUTTON' || e.target.type === 'checkbox') { updateState(); redrawAll(); }
+            if (e.target.tagName === 'BUTTON' || e.target.type === 'checkbox') { updateState(); debouncedRedrawAll(); }
         }));
         
         mainjobSelect.addEventListener('change', (e) => {
             updateState();
             const newMainJob = e.target.value;
             if (newMainJob) { const targetBtn = subjobSection.querySelector(`button[data-value="${newMainJob}"]`); if (targetBtn) targetBtn.classList.add('active'); }
-            updateState(); redrawAll();
+            updateState(); debouncedRedrawAll();
         });
         
-        subjobSection.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { e.target.classList.toggle('active'); updateState(); redrawAll(); } });
-        nameInput.addEventListener('input', () => { updateState(); drawUiLayer(); });
-        fontSelect.addEventListener('change', () => { updateState(); drawUiLayer(); });
+        subjobSection.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { e.target.classList.toggle('active'); updateState(); debouncedRedrawAll(); } });
+        nameInput.addEventListener('input', () => { updateState(); debouncedRedrawAll(); });
+        fontSelect.addEventListener('change', () => { updateState(); debouncedRedrawAll(); });
         
         uploadImageInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -457,10 +434,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             reader.readAsDataURL(file);
         });
 
-        // Touch/Drag Events
+        // Touch/Drag Events (Prevent default to stop scrolling while dragging)
         const handleDrag = (e, isTouch = false) => {
             if (!imageTransform.isDragging || !imageTransform.img) return;
-            e.preventDefault();
+            e.preventDefault(); // スクロール防止
             const loc = isTouch ? e.touches[0] : e;
             const dx = loc.clientX - imageTransform.lastX; const dy = loc.clientY - imageTransform.lastY;
             imageTransform.x += dx; imageTransform.y += dy; imageTransform.lastX = loc.clientX; imageTransform.lastY = loc.clientY; drawCharacterLayer();
@@ -471,12 +448,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         uiLayer.addEventListener('wheel', (e) => { if (!imageTransform.img) return; e.preventDefault(); imageTransform.scale *= e.deltaY < 0 ? 1.05 : 1 / 1.05; drawCharacterLayer(); });
         let lastTouchDistance = 0;
         uiLayer.addEventListener('touchstart', (e) => {
-            if (!imageTransform.img) return; e.preventDefault();
+            if (!imageTransform.img) return; 
+            // e.preventDefault(); // 入力フォーム等への影響を避けるため、画像がある時のみpreventしたいが、今回はCSSで制御
             if (e.touches.length === 1) { imageTransform.isDragging = true; imageTransform.lastX = e.touches[0].clientX; imageTransform.lastY = e.touches[0].clientY; }
             else if (e.touches.length === 2) { imageTransform.isDragging = false; const dx = e.touches[0].clientX - e.touches[1].clientX; const dy = e.touches[0].clientY - e.touches[1].clientY; lastTouchDistance = Math.sqrt(dx * dx + dy * dy); }
         }, { passive: false });
         uiLayer.addEventListener('touchmove', (e) => {
-            if (!imageTransform.img) return; e.preventDefault();
+            if (!imageTransform.img) return; 
+            e.preventDefault(); // ここは必須
             if (e.touches.length === 1 && imageTransform.isDragging) handleDrag(e, true);
             else if (e.touches.length === 2) {
                 const dx = e.touches[0].clientX - e.touches[1].clientX; const dy = e.touches[0].clientY - e.touches[1].clientY; const newDist = Math.sqrt(dx * dx + dy * dy);
@@ -495,20 +474,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const finalCanvas = document.createElement('canvas');
                 finalCanvas.width = CANVAS_WIDTH; finalCanvas.height = CANVAS_HEIGHT;
                 const finalCtx = finalCanvas.getContext('2d');
+                
+                // 現在の各レイヤーを合成するだけ
                 if (imageTransform.img) finalCtx.drawImage(backgroundLayer, 0, 0);
                 else { finalCtx.fillStyle = '#000000'; finalCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); }
                 
-                await drawTemplateLayer(); // Re-draw just in case
-                finalCtx.drawImage(charCtx.canvas, 0, 0); // Template Layer
-                finalCtx.drawImage(miscBg.c, 0, 0);
-                finalCtx.drawImage(subJobBg.c, 0, 0);
-                
-                await drawTinted(finalCtx, getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), templateConfig[state.template].iconTint);
-                
-                finalCtx.drawImage(miscFrame.c, 0, 0);
-                finalCtx.drawImage(subJobFrame.c, 0, 0);
-                finalCtx.drawImage(mainJobComp.c, 0, 0);
-                await drawNameText(finalCtx);
+                finalCtx.drawImage(characterLayer, 0, 0);
+                finalCtx.drawImage(uiLayer, 0, 0);
                 
                 const imageUrl = finalCanvas.toDataURL('image/jpeg', 0.92);
                 if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) { modalImage.src = imageUrl; saveModal.classList.remove('hidden'); }
@@ -559,9 +531,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 await redrawAll();
                 try { initMobileUI(); } catch(e) { console.warn("Mobile UI init failed", e); }
-                window.logToScreen('Initialization complete.', 'SUCCESS');
+                window.logToScreen('Init complete. Check black screen.', 'SUCCESS');
             } catch (e) {
-                window.logToScreen(`Initialize failed: ${e.message}`, 'ERROR');
+                window.logToScreen(`Init failed: ${e.message}`, 'ERROR');
                 loaderElement.style.display = 'none';
                 appElement.style.visibility = 'visible';
             }
