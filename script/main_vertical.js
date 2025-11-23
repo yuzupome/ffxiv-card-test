@@ -1,9 +1,9 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Final Clean Version (Single Canvas)
+ * Final Fix: Single Canvas + Alpha Disabled
  */
 
-// デバッグ用コンソール（不要なら削除可）
+// デバッグログ
 const initDebugConsole = () => {
     const consoleDiv = document.createElement('div');
     consoleDiv.id = 'debug-console';
@@ -38,24 +38,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
         
-        // スマホなら内部解像度を0.5倍にしてメモリを節約（見た目はCSSで調整）
         const SCALE_FACTOR = isMobile ? 0.5 : 1.0;
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
 
         window.logToScreen(`Mode: ${isMobile ? 'Mobile(0.5x)' : 'PC(1.0x)'}`);
 
-        // ★Canvasは1つだけ（これが正解）
         const canvas = document.getElementById('preview-canvas');
         if (!canvas) throw new Error("Canvas element 'preview-canvas' not found!");
         
-        const ctx = canvas.getContext('2d');
+        // ★修正: alpha: false で不透明モードにする（メモリ節約・透過バグ回避）
+        const ctx = canvas.getContext('2d', { alpha: false });
 
-        // サイズ適用
         canvas.width = CANVAS_WIDTH;
         canvas.height = CANVAS_HEIGHT;
 
-        // スケール設定（これ以降の描画命令はBASE_WIDTH(850x1200)基準で記述できる）
         ctx.scale(SCALE_FACTOR, SCALE_FACTOR);
 
         // --- 2. DOM要素の取得 ---
@@ -162,12 +159,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         };
 
-        // Tint処理してメインCanvasに描画する関数
         const drawTinted = async (path, tintColor) => {
             const img = await loadImage(path);
             if (!img) return;
             
-            // 一時Canvas（サイズは現在の解像度に合わせて小さく作る）
             const tempC = document.createElement('canvas');
             tempC.width = CANVAS_WIDTH;
             tempC.height = CANVAS_HEIGHT;
@@ -182,7 +177,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tempCtx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             }
             
-            // メインCanvasに転写（scaleを一時的に戻して等倍転写）
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.drawImage(tempC, 0, 0);
@@ -226,17 +220,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             return state.iconBgColor;
         };
 
-        // --- 5. メイン描画処理 (すべてのレイヤーを1つのCanvasに順に描く) ---
+        // --- 5. メイン描画処理 ---
         const redrawAll = async () => {
             updateState();
             
             try {
-                // (1) 全消去 & 黒背景
-                ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+                // 全消去 & 黒背景 (確実にリセット)
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.fillStyle = '#000000';
-                ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                ctx.restore();
 
-                // (2) ユーザー画像
+                // ユーザー画像
                 if (imageTransform.img) {
                     ctx.save();
                     ctx.translate(imageTransform.x, imageTransform.y);
@@ -245,27 +241,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ctx.restore();
                 }
 
-                // (3) テンプレート枠
+                // テンプレート
                 await drawTinted(getAssetPath({ category: 'base', filename: `${state.template}_cp` }));
 
-                // (4) 各種パーツ
+                // 各種パーツ
                 const config = templateConfig[state.template];
                 const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
 
-                // DC
                 if(state.dc) {
                     const dcTheme = state.template.startsWith('Royal') ? 'Royal' : 'Common';
                     await drawTinted(getAssetPath({ category: 'parts_text', filename: `${dcTheme}_dc_${state.dc}`, ignorePosition: true }), config.iconTint);
                 }
                 
-                // Race
                 const raceValue = raceAssetMap[state.race] || state.race;
                 if (raceValue) {
                     await drawTinted(getAssetPath({ category: 'parts_bg', filename: `Common_race_${raceValue}_bg` }), getIconBgColor('race'));
                     await drawTinted(getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }), config.iconTint);
                 }
                 
-                // Progress
                 if (state.progress) {
                     const stages = ['shinsei', 'souten', 'guren', 'shikkoku', 'gyougetsu', 'ougon'];
                     if (state.progress === 'all_clear') {
@@ -280,43 +273,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await drawTinted(getAssetPath({ category: 'parts_frame', filename: `Common_progress_${pFile}_frame` }), config.iconTint);
                 }
 
-                // Playstyle
                 const playstyleBgNumMap = { leveling: '01', raid: '06', pvp: '03', dd: '14', hunt: '09', map: '08', gatherer: '05', crafter: '07', gil: '02', perform: '10', streaming: '12', glam: '04', studio: '13', housing: '11', screenshot: '15', drawing: '16', roleplay: '17' };
                 for (const style of state.playstyles) {
                     const bgNum = playstyleBgNumMap[style];
                     if (bgNum) await drawTinted(getAssetPath({ category: 'parts_bg', filename: `Common_playstyle_${bgNum}_bg` }), getIconBgColor('playstyle'));
                 }
 
-                // Playtime
                 for (const time of state.playtimes) {
                     await drawTinted(getAssetPath({ category: 'parts_bg', filename: `Common_time_${time}_bg` }), getIconBgColor('time'));
                     await drawTinted(getAssetPath({ category: 'parts_frame', filename: `Common_time_${time}_frame` }), config.iconTint);
                 }
 
-                // Difficulty
                 for (const diff of state.difficulties) {
                     await drawTinted(getAssetPath({ category: 'parts_bg', filename: `Common_raid_${diff}_bg` }), getIconBgColor('raid'));
                 }
 
-                // Sub Jobs
                 for (const job of state.subjobs) {
                     const filename = JOB_FILENAME_MAP[job] || job;
                     await drawTinted(getAssetPath({ category: 'parts_bg', filename: `Common_job_${filename}_sub_bg` }), getIconBgColor('subjob'));
                     await drawTinted(getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_sub_frame` }), config.iconTint);
                 }
 
-                // Background Frame
                 if (config) {
                     await drawTinted(getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), config.iconTint);
                 }
 
-                // Main Job
                 if(state.mainjob) {
                     const filename = JOB_FILENAME_MAP[state.mainjob] || state.mainjob;
                     await drawTinted(getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_main` }), templateConfig[state.template].iconTint);
                 }
 
-                // Name
                 if (state.characterName && state.font) {
                     const fontName = state.font.split(',')[0].replace(/'/g, '');
                     const nameArea = NAME_COORDS[state.position];
@@ -409,7 +395,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             reader.readAsDataURL(file);
         });
 
-        // Touch/Drag
         const handleDrag = (e, isTouch = false) => {
             if (!imageTransform.isDragging || !imageTransform.img) return;
             e.preventDefault();
@@ -439,7 +424,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, { passive: false });
         window.addEventListener('touchend', () => { imageTransform.isDragging = false; });
 
-        // Download
         downloadBtn.addEventListener('click', async () => {
             if (isDownloading) return;
             isDownloading = true;

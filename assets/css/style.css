@@ -62,14 +62,15 @@ body.generator-page #app { visibility: hidden; }
     justify-content: center;
 }
 
-/* Canvasラッパー */
+/* Canvasラッパー (基本設定・スマホ用) */
 .canvas-wrapper {
     position: relative;
     width: 100%;
+    display: block;
     
-    /* デフォルト（スマホ）: paddingで高さを確保する安全策 */
+    /* 高さ確保用ハック */
     height: 0;
-    padding-top: 141.18%; /* 1200 / 850 */
+    padding-top: 141.18%; 
     
     border-radius: 12px;
     overflow: hidden;
@@ -78,7 +79,6 @@ body.generator-page #app { visibility: hidden; }
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* 統合された単一Canvas */
 .canvas-wrapper canvas {
     position: absolute;
     top: 0;
@@ -92,7 +92,7 @@ body.generator-page #app { visibility: hidden; }
 
 #controls { display: flex; flex-direction: column; gap: 2.5rem; }
 
-/* --- PCレイアウト修正 (高さ基準でサイズ決定) --- */
+/* --- PCレイアウト (画面幅 769px以上) --- */
 @media (min-width: 769px) {
   body { padding-bottom: 0; }
   .content-wrapper { display: flex; flex-direction: row; max-width: 1280px; }
@@ -105,21 +105,16 @@ body.generator-page #app { visibility: hidden; }
     top: 85px;
   }
 
-  /* PCでは高さを画面の85%に制限 */
   .canvas-container {
       align-items: flex-start;
   }
 
+  /* PCでの高さ制限 */
   .canvas-wrapper {
-    /* paddingハックを解除し、高さ指定モードへ */
     padding-top: 0 !important;
     height: 85vh !important;
-    
-    /* 幅はアスペクト比から自動計算 */
-    aspect-ratio: 850 / 1200;
     width: auto !important;
-    
-    /* はみ出し防止 */
+    aspect-ratio: 850 / 1200;
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
@@ -137,7 +132,7 @@ body.generator-page #app { visibility: hidden; }
   .bottom-sheet-header { display: none !important; }
 }
 
-/* スマホ専用スタイル */
+/* --- スマホレイアウト (画面幅 768px以下) --- */
 @media (max-width: 768px) {
     .site-header { padding: 1rem; }
     .content-wrapper { padding: 2rem 1rem; }
@@ -205,6 +200,9 @@ body.generator-page #app { visibility: hidden; }
 .how-to-use-section { margin-top: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border-color); }
 .how-to-use-title { font-family: 'Orbitron', sans-serif; text-align: center; font-size: 1.2rem; font-weight: 600; color: var(--text-color); margin-top: 0; margin-bottom: 0.5rem; }
 .how-to-use-gif { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border-color); display: block; }
+
+/* ↓ここが重要：ボタン画像のサイズ制限 */
+.generate-btn img { width: 32px; height: 32px; transition: transform 0.3s ease; }
 
 .footer-to-top { display: flex; align-items: center; gap: 0.2em; margin-left: auto; padding: 0 1.5rem; align-self: stretch; background-color: var(--surface-color); border-left: 1px solid var(--border-color); color: var(--text-color); font-weight: 500; text-decoration: none; transition: background-color 0.2s ease; }
 .footer-to-top:hover { background-color: var(--border-color); }
