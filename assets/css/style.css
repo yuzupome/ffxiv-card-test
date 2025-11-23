@@ -70,9 +70,9 @@ body.generator-page #app { visibility: hidden; }
     width: 100%;
     max-width: 100%;
     
-    /* アスペクト比確保 */
+    /* デフォルトは高さを確保（スマホ・共通） */
     height: 0;
-    padding-top: 141.18%; /* 1200 / 850 */
+    padding-top: 141.18%; /* 1200 / 850 = 1.41... */
     
     border-radius: 8px;
     overflow: hidden;
@@ -113,7 +113,6 @@ body.generator-page #app { visibility: hidden; }
         flex: 1;
         min-width: 460px;
         max-width: 800px;
-        /* PCはスクロール追従 */
         position: sticky;
         top: 90px; 
         align-self: flex-start;
@@ -121,11 +120,14 @@ body.generator-page #app { visibility: hidden; }
     }
 
     .canvas-wrapper {
+        /* ★修正: PCではpaddingハックを解除し、高さを明示的に指定してつぶれるのを防ぐ */
         padding-top: 0 !important;
-        height: auto !important;
-        max-height: calc(100vh - 120px) !important;
-        width: auto !important;
+        height: 80vh !important; /* 画面の80%の高さを確保 */
+        
+        /* アスペクト比に基づいて幅を自動計算 */
         aspect-ratio: 850 / 1200;
+        width: auto !important;
+        
         margin-left: auto;
         margin-right: auto;
         border-radius: 12px;
@@ -145,25 +147,33 @@ body.generator-page #app { visibility: hidden; }
 @media (max-width: 768px) {
     .preview-panel {
         position: sticky; /* 上部固定 */
-        top: 70px; /* ヘッダーの高さ分空ける */
+        top: 0;           /* ★修正: 最上部から固定 */
+        
+        /* 背景をつけて透けないようにする */
         background-color: var(--bg-color);
+        padding-top: 10px;
         padding-bottom: 1rem;
         border-bottom: 1px solid var(--border-color);
         margin-bottom: 2rem;
+        
+        /* ヘッダーより上にくるようにZ-index調整（必要なら） */
+        z-index: 1100; 
     }
     
     .canvas-wrapper {
-        /* 画面の半分くらいの高さに制限して、残りを入力エリアに */
-        height: 40vh !important;
-        width: auto !important;
-        aspect-ratio: 850 / 1200;
-        padding-top: 0 !important;
+        /* ★修正: サイズ制限を撤廃し、元の大きさ（padding-topハック）に戻す */
+        height: 0;
+        padding-top: 141.18%;
+        width: 100%;
+        max-width: 100%;
+        
         margin: 0 auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 }
 
 
-/* --- パーツスタイル --- */
+/* --- パーツスタイル (変更なし) --- */
 .control-section { padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
 #controls > div:first-of-type { border-top: none; padding-top: 0; }
 .section-title { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem 0; color: var(--text-color); }
