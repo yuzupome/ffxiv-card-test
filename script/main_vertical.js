@@ -1,16 +1,15 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Lightweight & High Compatibility Version
+ * Fix: Initialization Error & Drag Optimization
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // --- 1. デバイス判定とCanvas設定 ---
+        // --- 1. 設定 ---
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
         
-        // 画質は落とさない（1.0倍）
-        // CSSで表示サイズを調整しているので、内部解像度は高くても重くなりにくい
+        // 画質設定（1.0倍）
         const SCALE_FACTOR = 1.0; 
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
@@ -19,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const canvas = document.getElementById('preview-canvas');
         if (!canvas) throw new Error("Canvas element 'preview-canvas' not found!");
         
-        // ★修正: alpha: false を削除（PCのホワイトアウト対策）
+        // コンテキスト作成 (alpha: false は削除して標準モードに)
         const ctx = canvas.getContext('2d');
 
         // サイズ適用
@@ -29,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // スケール設定
         ctx.scale(SCALE_FACTOR, SCALE_FACTOR);
 
-        // --- 2. DOM要素取得 ---
+        // --- 2. DOM要素 ---
         const nameInput = document.getElementById('nameInput');
         const fontSelect = document.getElementById('fontSelect');
         const uploadImageInput = document.getElementById('uploadImage');
@@ -124,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
                 img.onload = () => { imageCache[src] = img; resolve(img); };
-                img.onerror = () => { resolve(null); };
+                img.onerror = () => { console.error(`Failed to load: ${src}`); resolve(null); };
                 img.src = src;
             });
         };
@@ -138,9 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tempC.height = CANVAS_HEIGHT;
             const tempCtx = tempC.getContext('2d');
             tempCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
-
             tempCtx.drawImage(img, 0, 0, BASE_WIDTH, BASE_HEIGHT);
-            
             if (tintColor) {
                 tempCtx.globalCompositeOperation = 'source-in';
                 tempCtx.fillStyle = tintColor;
@@ -190,9 +187,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             return state.iconBgColor;
         };
 
+        // --- 描画処理 ---
         const redrawAll = async () => {
             updateState();
             try {
+                // クリア & 黒背景
                 ctx.save();
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.fillStyle = '#000000';
@@ -285,6 +284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const debouncedRedrawAll = createDebouncer(redrawAll, 300);
 
+        // イベントリスナー群
         templateSelect.addEventListener('change', async () => {
             updateState();
             if (!userHasManuallyPickedColor) {
@@ -358,36 +358,60 @@ document.addEventListener('DOMContentLoaded', async () => {
             reader.readAsDataURL(file);
         });
 
+        // ★軽量化: ドラッグ処理を requestAnimationFrame で間引き
+        let isDragging = false;
+        let animationFrameId = null;
+
         const handleDrag = (e, isTouch = false) => {
-            if (!imageTransform.isDragging || !imageTransform.img) return;
+            if (!isDragging || !imageTransform.img) return;
             e.preventDefault();
+            
+            // 既に描画予約が入っていれば何もしない（間引き）
+            if (animationFrameId) return;
+
             const loc = isTouch ? e.touches[0] : e;
-            // マウス移動量をBASE_WIDTH基準に補正
             const dx = (loc.clientX - imageTransform.lastX) * (1 / SCALE_FACTOR); 
             const dy = (loc.clientY - imageTransform.lastY) * (1 / SCALE_FACTOR);
-            imageTransform.x += dx; imageTransform.y += dy; imageTransform.lastX = loc.clientX; imageTransform.lastY = loc.clientY; 
-            redrawAll(); 
-        };
-        canvas.addEventListener('mousedown', (e) => { if (!imageTransform.img) return; imageTransform.isDragging = true; imageTransform.lastX = e.clientX; imageTransform.lastY = e.clientY; });
-        window.addEventListener('mousemove', (e) => handleDrag(e, false));
-        window.addEventListener('mouseup', () => { imageTransform.isDragging = false; });
-        
-        canvas.addEventListener('touchstart', (e) => {
-            if (!imageTransform.img) return;
-            e.preventDefault();
-            if (e.touches.length === 1) {
-                imageTransform.isDragging = true; 
-                imageTransform.lastX = e.touches[0].clientX; 
-                imageTransform.lastY = e.touches[0].clientY;
-            }
-        }, { passive: false });
-        canvas.addEventListener('touchmove', (e) => {
-            if (!imageTransform.img) return;
-            e.preventDefault();
-            if (e.touches.length === 1 && imageTransform.isDragging) handleDrag(e, true);
-        }, { passive: false });
-        window.addEventListener('touchend', () => { imageTransform.isDragging = false; });
+            
+            imageTransform.x += dx; 
+            imageTransform.y += dy; 
+            imageTransform.lastX = loc.clientX; 
+            imageTransform.lastY = loc.clientY; 
 
+            // 次の描画タイミングで実行
+            animationFrameId = requestAnimationFrame(() => {
+                redrawAll();
+                animationFrameId = null;
+            });
+        };
+
+        const startDrag = (e, isTouch = false) => {
+            if (!imageTransform.img) return;
+            isDragging = true;
+            const loc = isTouch ? e.touches[0] : e;
+            imageTransform.lastX = loc.clientX;
+            imageTransform.lastY = loc.clientY;
+        };
+
+        const endDrag = () => {
+            isDragging = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        };
+
+        // マウスイベント
+        canvas.addEventListener('mousedown', (e) => startDrag(e, false));
+        window.addEventListener('mousemove', (e) => handleDrag(e, false));
+        window.addEventListener('mouseup', endDrag);
+        
+        // タッチイベント (Passive: false でスクロール防止)
+        canvas.addEventListener('touchstart', (e) => startDrag(e, true), { passive: false });
+        canvas.addEventListener('touchmove', (e) => handleDrag(e, true), { passive: false });
+        window.addEventListener('touchend', endDrag);
+
+        // ダウンロード
         downloadBtn.addEventListener('click', async () => {
             if (isDownloading) return;
             isDownloading = true;
@@ -411,9 +435,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
         closeModalBtn.addEventListener('click', () => { saveModal.classList.add('hidden'); });
-        window.addEventListener('scroll', () => { const rect = mainColorPickerSection.getBoundingClientRect(); if (rect.bottom < 50) stickyColorDrawer.classList.remove('is-hidden'); else { stickyColorDrawer.classList.add('is-hidden'); stickyColorDrawer.classList.add('is-closed'); }});
+        
+        // スクロール連動（右側ドロワーのみ）
+        window.addEventListener('scroll', () => { 
+            if(window.innerWidth > 768) {
+                const rect = mainColorPickerSection.getBoundingClientRect(); 
+                if (rect.bottom < 50) stickyColorDrawer.classList.remove('is-hidden'); 
+                else { stickyColorDrawer.classList.add('is-hidden'); stickyColorDrawer.classList.add('is-closed'); }
+            }
+        });
         drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
 
+        // ★修正: drawCharacterLayer()呼び出し削除 & initialize修正
         const initialize = async () => {
             try {
                 iconBgColorPicker.value = '#CCCCCC';
@@ -421,6 +454,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loaderElement.style.display = 'none';
                 appElement.style.visibility = 'visible';
                 
+                // 削除: drawCharacterLayer(); // この関数はもう存在しないためエラーの原因だった
                 await preloadFonts();
                 fontSelect.value = state.font;
                 

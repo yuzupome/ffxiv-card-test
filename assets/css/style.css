@@ -68,10 +68,16 @@ body.generator-page #app { visibility: hidden; }
 .canvas-wrapper {
     position: relative;
     width: 100%;
+    max-width: 100%;
+    
+    /* アスペクト比確保 (850:1200) */
+    height: 0;
+    padding-top: 141.18%; 
+    
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid var(--border-color);
-    background-color: #000000 !important; /* 背景色を黒に */
+    background-color: #000000 !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -111,17 +117,15 @@ body.generator-page #app { visibility: hidden; }
         position: sticky;
         top: 90px; 
         align-self: flex-start;
+        z-index: 10;
     }
 
     .canvas-wrapper {
-        /* PCは画面内に収まるよう高さを制限 */
+        padding-top: 0 !important;
         height: auto !important;
         max-height: calc(100vh - 120px) !important;
         width: auto !important;
-        
-        /* アスペクト比で幅を決定 */
         aspect-ratio: 850 / 1200;
-        
         margin-left: auto;
         margin-right: auto;
         border-radius: 12px;
@@ -136,34 +140,36 @@ body.generator-page #app { visibility: hidden; }
 }
 
 /* =========================================
-   スマホ用レイアウト (768px以下)
-   ★軽量スティッキープレビュー
+   ★スマホ用レイアウト (768px以下)
    ========================================= */
 @media (max-width: 768px) {
     .preview-panel {
-        /* CSSだけで画面上部に張り付かせる */
+        /* ヘッダーの下に張り付くように固定 */
         position: sticky;
-        top: 10px; /* 上端から少し余白 */
-        pointer-events: none; /* 枠外タップを入力エリアへ通す */
+        top: 0; 
+        z-index: 500; /* 入力フォームより手前に */
+        background-color: var(--bg-color); /* 背景色をつけて透けないようにする */
+        padding-bottom: 1rem; /* 下に少し余白 */
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 1rem;
     }
     
-    .preview-panel .canvas-container {
-        pointer-events: auto; /* Canvas操作は許可 */
-    }
-
     .canvas-wrapper {
-        /* スマホでは「高さ固定」にして、スクロールしても邪魔にならないサイズにする */
-        height: 35vh !important; /* 画面の35%くらいの高さ */
-        width: auto !important;  /* 幅はなりゆき */
-        aspect-ratio: 850 / 1200; /* 比率維持 */
-        
+        /* 画面を占領しすぎないよう、高さの上限だけ設ける (任意) */
+        /* これがないとキーボードが出たときに入力欄が見えなくなるため推奨 */
+        max-height: 40vh; 
+        width: auto;
         margin: 0 auto;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        border: 2px solid var(--primary-color); /* 境界をわかりやすく */
+        
+        /* アスペクト比維持のためにpaddingハックを解除して高さ基準にする */
+        padding-top: 0;
+        height: auto;
+        aspect-ratio: 850 / 1200;
     }
 }
 
-/* --- パーツスタイル --- */
+
+/* --- パーツスタイル (変更なし) --- */
 .control-section { padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
 #controls > div:first-of-type { border-top: none; padding-top: 0; }
 .section-title { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem 0; color: var(--text-color); }
