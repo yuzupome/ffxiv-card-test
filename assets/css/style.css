@@ -7,7 +7,7 @@
     --text-color: #374151;
     --text-secondary-color: #6b7280;
     --border-color: #e5e7eb;
-    --accent-color: #f2b26b; /* アクセントカラー定義 */
+    --accent-color: #f2b26b;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -19,7 +19,7 @@ body {
   margin: 0;
   line-height: 1.6;
   overflow-x: hidden;
-  padding-bottom: 80px; /* スマホのアクションバー分の余白 */
+  padding-bottom: 80px;
 }
 
 #app { display: flex; flex-direction: column; min-height: 100vh; }
@@ -44,27 +44,25 @@ body.generator-page #app { visibility: hidden; }
     margin: 0 auto;
     flex-grow: 1;
 }
+
 .preview-panel {
     width: 100%;
-    position: sticky;
-    top: 69px;
     z-index: 1;
 }
 .controls-panel {
     width: 100%;
     margin-top: 2rem;
-    background-color: var(--bg-color); /* 背景色を明示 */
+    background-color: var(--bg-color);
 }
 
 /* Canvas レイヤー */
 .canvas-container { width: 100%; margin: 0 auto; }
 
-/* ★修正: PC/Mobile両対応のCanvasラッパー */
+/* Canvasラッパー: アスペクト比固定 */
 .canvas-wrapper {
     position: relative;
     width: 100%;
     
-    /* シンプルにアスペクト比のみを指定 */
     aspect-ratio: 850 / 1200;
     height: auto;
 
@@ -72,9 +70,17 @@ body.generator-page #app { visibility: hidden; }
     overflow: hidden;
     border: 1px solid var(--border-color);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    background-color: #000000 !important; /* 強制黒背景 */
-    max-width: 425px !important; /* PCでの最大幅制限 */
-    margin: 0 auto; /* 中央寄せ */
+    background-color: #000000 !important; /* 背景を黒に強制 */
+    max-width: 425px !important; /* PC幅 */
+    margin: 0 auto;
+}
+
+/* 古いブラウザ向けのフォールバック (padding hack) */
+@supports not (aspect-ratio: 850 / 1200) {
+    .canvas-wrapper {
+        height: 0;
+        padding-top: 141.18%;
+    }
 }
 
 .canvas-wrapper canvas {
@@ -87,7 +93,9 @@ body.generator-page #app { visibility: hidden; }
     display: block;
     visibility: visible !important;
 }
-#background-layer { background-color: #000 !important; }
+
+/* 背景レイヤーの背景色も黒に */
+#background-layer { background-color: #000000 !important; }
 #ui-layer { cursor: grab; }
 #ui-layer:active { cursor: grabbing; }
 #controls { display: flex; flex-direction: column; gap: 2.5rem; }
@@ -115,13 +123,13 @@ body.generator-page #app { visibility: hidden; }
     height: 48px;
 }
 
-/* セクションのスタイル */
+/* セクションなど共通スタイル */
 .control-section { padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
 #controls > div:first-of-type { border-top: none; padding-top: 0; }
 .section-title { font-family: 'Orbitron', sans-serif; font-size: 1rem; font-weight: 600; margin: 0 0 1rem 0; color: var(--text-color); }
 .section-title-nested { font-size: 0.9rem; margin-bottom: 1rem; color: var(--text-secondary-color); font-family: 'Orbitron', sans-serif; }
 
-/* フォーム要素 */
+/* フォーム */
 #top-controls { display: flex; flex-direction: column; gap: 1rem; }
 input[type="text"], select {
     width: 100%;
@@ -154,11 +162,9 @@ select:invalid { color: var(--text-secondary-color); }
 .file-upload-input { display: none; }
 .file-name-display { font-size: 0.8rem; color: var(--text-secondary-color); text-align: center; margin-top: 0.5rem; height: 1em; }
 
-/* グリッドレイアウト */
 .grid-col-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .grid-col-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 
-/* ボタン */
 .button-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .button-grid button {
     background-color: var(--bg-color);
@@ -202,15 +208,9 @@ select:invalid { color: var(--text-secondary-color); }
 }
 .generate-btn:hover img { transform: rotate(-15deg) scale(1.1); }
 
-/* チェックボックス */
 .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; }
 .time-section { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-.time-section > span {
-    font-weight: 500;
-    color: var(--text-secondary-color);
-    font-size: 0.95rem;
-    flex-shrink: 0;
-}
+.time-section > span { font-weight: 500; color: var(--text-secondary-color); font-size: 0.95rem; flex-shrink: 0; }
 .options-row { display: flex; flex-wrap: wrap; gap: 1rem; }
 .checkbox-group-single { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: center; gap: 1.5rem; }
 .checkbox-group label, .checkbox-group-single label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.95rem; }
@@ -224,87 +224,38 @@ input[type="checkbox"] + span {
     transition: all 0.2s ease;
     position: relative;
 }
-input[type="checkbox"]:checked + span {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-input[type="checkbox"]:checked + span::after {
-    content: '✓';
-    color: white;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 14px;
-    font-weight: bold;
-}
+input[type="checkbox"]:checked + span { background-color: var(--primary-color); border-color: var(--primary-color); }
+input[type="checkbox"]:checked + span::after { content: '✓'; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; font-weight: bold; }
 
 #mainjobSelect { margin-bottom: 1.5rem; }
 #subjobSection h3 { margin: 0 0 1rem; }
-.grid-break {
-    flex-basis: 100%;
-    height: 0;
-}
+.grid-break { flex-basis: 100%; height: 0; }
 
-/* フッターとTOPに戻るボタン */
 .site-footer {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 2rem;
-    border-top: 1px solid var(--border-color);
-    color: var(--text-secondary-color);
-    font-size: 0.9rem;
+    display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 2rem;
+    border-top: 1px solid var(--border-color); color: var(--text-secondary-color); font-size: 0.9rem;
 }
 .site-footer a { color: var(--text-secondary-color); text-decoration: none; transition: color 0.2s ease; }
 .site-footer a:hover { color: var(--primary-hover-color); }
 .site-footer svg { width: 18px; height: 18px; }
 
-/* モーダル */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
 .modal-overlay:not(.hidden) { opacity: 1; pointer-events: auto; }
-.modal-content {
-    background: var(--bg-color);
-    padding: 2rem;
-    border-radius: 12px;
-    max-width: 90vw;
-    max-height: 90vh;
-    overflow-y: auto;
-    text-align: center;
-    position: relative;
-}
-.close-button {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    font-size: 1.5rem;
-    color: var(--text-secondary-color);
-    background: none;
-    border: none;
-    cursor: pointer;
-}
+.modal-content { background: var(--bg-color); padding: 2rem; border-radius: 12px; max-width: 90vw; max-height: 90vh; overflow-y: auto; text-align: center; position: relative; }
+.close-button { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; color: var(--text-secondary-color); background: none; border: none; cursor: pointer; }
 .modal-content h3 { margin-top: 0; }
-.modal-content img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-    margin-top: 1rem;
-}
+.modal-content img { max-width: 100%; height: auto; border-radius: 8px; margin-top: 1rem; }
 
-/* レスポンシブ対応 & PCレイアウト */
+/* レスポンシブ */
 @media (min-width: 769px) {
   body { padding-bottom: 0; }
-  .content-wrapper { 
-      display: flex;
-      flex-direction: row; 
-      max-width: 1280px; 
-    }
+  .content-wrapper { display: flex; flex-direction: row; max-width: 1280px; }
+  /* PCのみsticky有効 */
   .preview-panel {
     flex: 1;
-    /* ★修正: PCの最小幅を700px -> 460pxに縮小 */
     min-width: 460px;
     max-width: 800px;
+    position: sticky;
     top: 85px;
   }
   .controls-panel {
@@ -315,277 +266,111 @@ input[type="checkbox"]:checked + span::after {
     padding-left: 2rem;
     margin-top: 0;
   }
-  /* PCではアクションバーとボトムシートヘッダーを隠す */
   .mobile-action-bar { display: none !important; }
   .bottom-sheet-header { display: none !important; }
 }
 
-/* 📱 スマホ専用スタイル (ボトムシート) */
+/* 📱 スマホ専用スタイル */
 @media (max-width: 768px) {
     .site-header { padding: 1rem; }
     .content-wrapper { padding: 2rem 1rem; }
     .grid-col-2, .grid-col-3 { grid-template-columns: 1fr; }
-    .site-footer { padding: 1.5rem 1rem; padding-bottom: 100px; } /* アクションバー回避 */
-
-    /* 右パレットはスマホでは非表示 */
+    .site-footer { padding: 1.5rem 1rem; padding-bottom: 100px; }
     .sticky-drawer { display: none !important; }
+    
+    /* スマホではstickyを解除し、描画バグを回避 */
+    .preview-panel { position: relative !important; top: 0 !important; }
 
-    /* ボトムシート化する入力フォーム */
     .controls-panel {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        height: 85vh; /* 画面の85%の高さ */
+        position: fixed; bottom: 0; left: 0; right: 0;
+        width: 100%; height: 85vh;
         background-color: var(--bg-color);
         z-index: 3000;
         border-radius: 16px 16px 0 0;
         box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
         padding: 0 1.5rem 1.5rem 1.5rem;
         transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        transform: translateY(100%); /* デフォルトは隠す */
+        transform: translateY(100%);
         overflow-y: auto;
     }
+    .controls-panel.is-open { transform: translateY(0); }
 
-    .controls-panel.is-open {
-        transform: translateY(0); /* 表示 */
-    }
-
-    /* ボトムシートのヘッダー（閉じるボタン用エリア） */
     .bottom-sheet-header {
-        position: sticky;
-        top: 0;
+        position: sticky; top: 0;
         background-color: var(--bg-color);
         padding: 1rem 0;
         border-bottom: 1px solid var(--border-color);
         margin-bottom: 1rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        display: flex; justify-content: center; align-items: center;
         z-index: 10;
     }
-    
-    /* ドラッグできそうなハンドルバー */
-    .sheet-handle-bar {
-        width: 40px;
-        height: 5px;
-        background-color: var(--border-color);
-        border-radius: 10px;
-    }
+    .sheet-handle-bar { width: 40px; height: 5px; background-color: var(--border-color); border-radius: 10px; }
 
-    /* スマホ用 固定アクションバー */
     .mobile-action-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
+        position: fixed; bottom: 0; left: 0; right: 0;
         background-color: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
         border-top: 1px solid var(--border-color);
         padding: 1rem;
-        display: flex;
-        gap: 1rem;
-        z-index: 2500; /* シートより下、コンテンツより上 */
+        display: flex; gap: 1rem;
+        z-index: 2500;
         box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
     }
-
     .mobile-action-btn {
-        flex: 1;
-        padding: 0.8rem;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 1rem;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
+        flex: 1; padding: 0.8rem; border-radius: 8px;
+        font-weight: 600; font-size: 1rem; border: none;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     }
-
-    .btn-secondary {
-        background-color: var(--surface-color);
-        color: var(--text-color);
-        border: 1px solid var(--border-color);
-    }
-
-    .btn-primary {
-        background-color: var(--primary-color);
-        color: white;
-    }
-    
-    /* Canvasラッパーの幅をスマホで最大化 */
-    .canvas-wrapper {
-        max-width: 100% !important;
-    }
+    .btn-secondary { background-color: var(--surface-color); color: var(--text-color); border: 1px solid var(--border-color); }
+    .btn-primary { background-color: var(--primary-color); color: white; }
+    .canvas-wrapper { max-width: 100% !important; }
 }
 
-/* UI改善のためのスタイル (共通) */
-.color-picker-ui {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
+.color-picker-ui { display: flex; align-items: center; gap: 0.75rem; }
 .color-picker-ui input[type="color"] {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    width: 48px;
-    height: 48px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    background-color: transparent;
-    border: 2px solid var(--border-color);
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    width: 48px; height: 48px; padding: 0; border: none; border-radius: 50%;
+    cursor: pointer; background-color: transparent; border: 2px solid var(--border-color);
 }
-.color-picker-ui input[type="color"]::-webkit-color-swatch {
-    border-radius: 50%;
-    border: none;
-}
-.color-picker-ui input[type="color"]::-moz-color-swatch {
-    border-radius: 50%;
-    border: none;
-}
-/* ★新規追加: 文字色パレット用スタイル */
-.text-color-row {
-    margin-top: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-.text-color-label {
-    font-family: 'Orbitron', sans-serif;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text-color);
-}
+.color-picker-ui input[type="color"]::-webkit-color-swatch { border-radius: 50%; border: none; }
+.color-picker-ui input[type="color"]::-moz-color-swatch { border-radius: 50%; border: none; }
+.text-color-row { margin-top: 1rem; display: flex; align-items: center; gap: 0.75rem; }
+.text-color-label { font-family: 'Orbitron', sans-serif; font-weight: 600; font-size: 0.9rem; color: var(--text-color); }
 
 .reset-btn {
-    background-color: var(--surface-color);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary-color);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
+    background-color: var(--surface-color); border: 1px solid var(--border-color);
+    color: var(--text-secondary-color); padding: 0.5rem 1rem; border-radius: 8px;
+    cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease;
 }
-.reset-btn:hover {
-    border-color: var(--primary-hover-color);
-    color: var(--primary-hover-color);
-}
+.reset-btn:hover { border-color: var(--primary-hover-color); color: var(--primary-hover-color); }
 
 .sticky-drawer {
-    position: fixed;
-    top: 520px;
-    right: 0;
-    transform: translateY(0);
-    z-index: 1500;
-    display: flex;
-    align-items: center;
-    transition: transform 0.3s ease-in-out;
+    position: fixed; top: 520px; right: 0; transform: translateY(0);
+    z-index: 1500; display: flex; align-items: center; transition: transform 0.3s ease-in-out;
 }
-.sticky-drawer.is-closed {
-    transform: translateX(calc(100% - 48px));
-}
+.sticky-drawer.is-closed { transform: translateX(calc(100% - 48px)); }
 .drawer-handle {
-    width: 48px;
-    height: 64px;
-    background-color: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-right: none;
-    border-radius: 12px 0 0 12px;
-    box-shadow: -2px 2px 8px rgba(0,0,0,0.1);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    color: #f2b26b; 
+    width: 48px; height: 64px; background-color: var(--surface-color); border: 1px solid var(--border-color); border-right: none;
+    border-radius: 12px 0 0 12px; box-shadow: -2px 2px 8px rgba(0,0,0,0.1);
+    display: flex; justify-content: center; align-items: center; cursor: pointer; color: #f2b26b; 
 }
 .drawer-panel {
-    padding: 1rem;
-    background-color: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-right: none;
-    border-radius: 12px 0 0 12px;
-    box-shadow: -2px 2px 8px rgba(0,0,0,0.1);
+    padding: 1rem; background-color: var(--surface-color); border: 1px solid var(--border-color); border-right: none;
+    border-radius: 12px 0 0 12px; box-shadow: -2px 2px 8px rgba(0,0,0,0.1);
 }
-.sticky-picker-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin: 0 0 0.75rem 0;
-    color: var(--text-color);
-}
+.sticky-picker-title { font-family: 'Orbitron', sans-serif; font-size: 0.9rem; font-weight: 600; margin: 0 0 0.75rem 0; color: var(--text-color); }
 
-/* フッターのデザインクレジット部分のスタイル */
-.design-credit {
-    color: var(--text-secondary-color);
-}
+.design-credit { color: var(--text-secondary-color); }
+.design-credit a { font-size: 0.9em; color: var(--text-secondary-color); opacity: 0.7; text-decoration: none; transition: all 0.2s ease; }
+.design-credit a:hover { opacity: 1; color: var(--primary-hover-color); }
 
-.design-credit a {
-    font-size: 0.9em; /* 文字を少し小さく */
-    color: var(--text-secondary-color);
-    opacity: 0.7; /* 少し透明にして存在感を薄める */
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
+.how-to-use-section { margin-top: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border-color); }
+.how-to-use-title { font-family: 'Orbitron', sans-serif; text-align: center; font-size: 1.2rem; font-weight: 600; color: var(--text-color); margin-top: 0; margin-bottom: 0.5rem; }
+.how-to-use-gif { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border-color); display: block; }
 
-.design-credit a:hover {
-    opacity: 1;
-    color: var(--primary-hover-color);
-}
-
-/* How to Useセクションのスタイル */
-.how-to-use-section {
-    margin-top: 2rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid var(--border-color);
-}
-.how-to-use-title {
-    font-family: 'Orbitron', sans-serif;
-    text-align: center;
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--text-color);
-    margin-top: 0;
-    margin-bottom: 0.5rem; /* 見出しと動画の余白を狭く */
-}
-.how-to-use-gif {
-    width: 100%;
-    height: auto;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    display: block;
-}
-
-/* フッター内蔵「TOPへ戻る」ボタンのスタイル */
 .footer-to-top {
-    display: flex; /* 文字とアイコンを横並びにする */
-    align-items: center; /* 上下中央揃え */
-    gap: 0.2em; /* 文字とアイコンの隙間 */
-    
-    margin-left: auto; /* 右端に配置する */
-    padding: 0 1.5rem; /* ボタンの左右の余白 */
-    align-self: stretch; /* フッターの高さ一杯に広げる */
-    
-    background-color: var(--surface-color); /* ボタンの背景色 */
-    border-left: 1px solid var(--border-color); /* 左の境界線 */
-    
-    color: var(--text-color); /* 文字とアイコンの色 */
-    font-weight: 500;
-    text-decoration: none;
-    transition: background-color 0.2s ease;
+    display: flex; align-items: center; gap: 0.2em; margin-left: auto; padding: 0 1.5rem; align-self: stretch;
+    background-color: var(--surface-color); border-left: 1px solid var(--border-color); color: var(--text-color); font-weight: 500; text-decoration: none; transition: background-color 0.2s ease;
 }
-
-.footer-to-top:hover {
-    background-color: var(--border-color); /* ホバー時の背景色 */
-}
-
-.footer-to-top svg {
-    width: 20px;
-    height: 20px;
-}
+.footer-to-top:hover { background-color: var(--border-color); }
+.footer-to-top svg { width: 20px; height: 20px; }

@@ -1,10 +1,9 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Mobile Whiteout Fix Version
+ * Memory Optimization Fix
  */
 document.addEventListener('DOMContentLoaded', async () => {
 
-    // --- 1. DOM要素の取得 ---
     const backgroundLayer = document.getElementById('background-layer');
     const characterLayer = document.getElementById('character-layer');
     const uiLayer = document.getElementById('ui-layer');
@@ -12,15 +11,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const charCtx = characterLayer.getContext('2d');
     const uiCtx = uiLayer.getContext('2d');
     
-    // レイヤー分割用のCanvas
-    const miscBgCanvas = document.createElement('canvas');     // 背景用
+    const miscBgCanvas = document.createElement('canvas');
     const miscBgCtx = miscBgCanvas.getContext('2d');
-    const miscFrameCanvas = document.createElement('canvas');  // 枠・文字用
+    const miscFrameCanvas = document.createElement('canvas');
     const miscFrameCtx = miscFrameCanvas.getContext('2d');
 
-    const subJobBgCanvas = document.createElement('canvas');    // サブジョブ背景
+    const subJobBgCanvas = document.createElement('canvas');
     const subJobBgCtx = subJobBgCanvas.getContext('2d');
-    const subJobFrameCanvas = document.createElement('canvas'); // サブジョブ枠
+    const subJobFrameCanvas = document.createElement('canvas');
     const subJobFrameCtx = subJobFrameCanvas.getContext('2d');
 
     const mainJobCompositeCanvas = document.createElement('canvas');
@@ -41,9 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mainjobSelect = document.getElementById('mainjobSelect');
     const subjobSection = document.getElementById('subjobSection');
     const downloadBtn = document.getElementById('downloadBtn');
-    
     const textColorPicker = document.getElementById('textColorPicker');
-
     const appElement = document.getElementById('app');
     const loaderElement = document.getElementById('loader');
     const saveModal = document.getElementById('saveModal');
@@ -58,14 +54,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const stickyIconBgColorPicker = document.getElementById('stickyIconBgColorPicker');
     const stickyResetColorBtn = document.getElementById('stickyResetColorBtn');
 
-    // --- 2. 定数と設定 ---
     const CANVAS_WIDTH = 850;
     const CANVAS_HEIGHT = 1200;
 
-    // 初期化時にCanvasサイズを設定（initialize内でも念押しで実行します）
+    // Canvasサイズ初期化（重要）
     [backgroundLayer, characterLayer, uiLayer, miscBgCanvas, miscFrameCanvas, mainJobCompositeCanvas, subJobBgCanvas, subJobFrameCanvas].forEach(c => {
-        c.width = CANVAS_WIDTH;
-        c.height = CANVAS_HEIGHT;
+        if(c) { c.width = CANVAS_WIDTH; c.height = CANVAS_HEIGHT; }
     });
 
     const NAME_COORDS = {
@@ -73,7 +67,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         _right: { x: 197, y: 1073, width: 442, height: 70 }
     };
 
-    // ジョブIDとファイル名の変換マップ
     const JOB_FILENAME_MAP = {
         'paladin': 'paladin', 'warrior': 'warrior', 'darkknight': 'darkknight', 'gunbreaker': 'gunbreaker',
         'whitemage': 'whitemage', 'scholar': 'scholar', 'astrologian': 'astrologian', 'sage': 'sage',
@@ -83,11 +76,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         'blackmage': 'blackmage', 'summoner': 'summoner', 'redmage': 'redmage', 'pictomancer': 'pictomancer', 'bluemage': 'bluemage',
         'carpenter': 'carpenter', 'blacksmith': 'blacksmith', 'armorer': 'armorer', 'goldsmith': 'goldsmith',
         'leatherworker': 'leatherworker', 'weaver': 'weaver', 'alchemist': 'alchemist', 'culinarian': 'culinarian',
-        'miner': 'miner', 'botanist': 'botanist', 
-        'fisher': 'fisher'
+        'miner': 'miner', 'botanist': 'botanist', 'fisher': 'fisher'
     };
 
-    // テンプレート設定
     const templateConfig = {
         'Gothic_black':   { nameColor: '#ffffff', iconTint: '#ffffff', defaultBg: '#A142CD', iconTheme: 'Common' },
         'Gothic_white':   { nameColor: '#000000', iconTint: '#000000', defaultBg: '#6CD9D6', iconTheme: 'Common' },
@@ -115,32 +106,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         en: { generating: 'Generating...', generateDefault: 'Generate Card' }
     };
 
-    let state = { 
-        font: "'Exo 2', sans-serif", 
-        position: '_left',
-        nameColor: '#ffffff'
-    };
+    let state = { font: "'Exo 2', sans-serif", position: '_left', nameColor: '#ffffff' };
     let imageTransform = { img: null, x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, scale: 1.0, isDragging: false, lastX: 0, lastY: 0 };
     let imageCache = {};
     let isDownloading = false;
     let userHasManuallyPickedColor = false;
     let userHasManuallyPickedTextColor = false;
-    let previousMainJob = '';
 
     const getAssetPath = (options) => {
         const isEn = currentLang === 'en';
         let langSuffix = '';
-        if (isEn) {
-            if (options.category === 'base' || 
-                options.filename.includes('progress') || 
-                options.filename.includes('playstyle') ||
-                options.filename.includes('time')) {
-                langSuffix = '_en';
-            }
+        if (isEn && (options.category === 'base' || options.filename.includes('progress') || options.filename.includes('playstyle') || options.filename.includes('time'))) {
+            langSuffix = '_en';
         }
         const posSuffix = options.ignorePosition ? '' : state.position; 
-        let finalFilename = options.filename;
-        return `./assets/images/vertical/${options.category}/${finalFilename}${posSuffix}${langSuffix}.webp`;
+        return `./assets/images/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
     };
 
     const loadImage = (src) => {
@@ -208,10 +188,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const drawCharacterLayer = () => {
-        // ★重要: JSで強制的に黒塗りを実行
         bgCtx.fillStyle = '#000000';
         bgCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
         if (imageTransform.img) {
             bgCtx.save();
             bgCtx.translate(imageTransform.x, imageTransform.y);
@@ -233,21 +211,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if(state.dc && layerType === 'frame') {
             const dcTheme = state.template.startsWith('Royal') ? 'Royal' : 'Common';
-            await drawTinted(ctx, getAssetPath({ 
-                category: 'parts_text', 
-                filename: `${dcTheme}_dc_${state.dc}`,
-                ignorePosition: true 
-            }), config.iconTint);
+            await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `${dcTheme}_dc_${state.dc}`, ignorePosition: true }), config.iconTint);
         }
         
         const raceValue = raceAssetMap[state.race] || state.race;
         if (raceValue) {
-            if (layerType === 'bg') {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_race_${raceValue}_bg` }), getIconBgColor('race'));
-            }
-            if (layerType === 'frame') {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }), config.iconTint);
-            }
+            if (layerType === 'bg') await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_race_${raceValue}_bg` }), getIconBgColor('race'));
+            if (layerType === 'frame') await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }), config.iconTint);
         }
         
         if (state.progress) {
@@ -268,46 +238,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        const playstyleBgNumMap = {
-            leveling: '01',
-            raid: '06',
-            pvp: '03',
-            dd: '14',
-            hunt: '09',
-            map: '08',
-            gatherer: '05',
-            crafter: '07',
-            gil: '02',
-            perform: '10',
-            streaming: '12',
-            glam: '04',
-            studio: '13',
-            housing: '11',
-            screenshot: '15',
-            drawing: '16',
-            roleplay: '17'
-        };
-
+        const playstyleBgNumMap = { leveling: '01', raid: '06', pvp: '03', dd: '14', hunt: '09', map: '08', gatherer: '05', crafter: '07', gil: '02', perform: '10', streaming: '12', glam: '04', studio: '13', housing: '11', screenshot: '15', drawing: '16', roleplay: '17' };
         if (layerType === 'bg') {
             for (const style of state.playstyles) {
                 const bgNum = playstyleBgNumMap[style];
                 if (bgNum) await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_playstyle_${bgNum}_bg` }), getIconBgColor('playstyle'));
             }
         }
-
         for (const time of state.playtimes) {
-            if (layerType === 'bg') {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_time_${time}_bg` }), getIconBgColor('time'));
-            }
-            if (layerType === 'frame') {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_time_${time}_frame` }), config.iconTint);
-            }
+            if (layerType === 'bg') await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_time_${time}_bg` }), getIconBgColor('time'));
+            if (layerType === 'frame') await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_time_${time}_frame` }), config.iconTint);
         }
-
         if (layerType === 'bg') {
-            for (const diff of state.difficulties) {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_raid_${diff}_bg` }), getIconBgColor('raid'));
-            }
+            for (const diff of state.difficulties) await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_raid_${diff}_bg` }), getIconBgColor('raid'));
         }
     };
 
@@ -320,13 +263,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const config = templateConfig[state.template];
         for (const job of state.subjobs) {
             const filename = JOB_FILENAME_MAP[job] || job;
-            
-            if (layerType === 'bg') {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_job_${filename}_sub_bg` }), getIconBgColor('subjob'));
-            }
-            if (layerType === 'frame') {
-                await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_sub_frame` }), config.iconTint);
-            }
+            if (layerType === 'bg') await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_job_${filename}_sub_bg` }), getIconBgColor('subjob'));
+            if (layerType === 'frame') await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_sub_frame` }), config.iconTint);
         }
     };
 
@@ -339,34 +277,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         let fontSize = 50;
         ctx.font = `${fontSize}px "${fontName}"`;
         while(ctx.measureText(state.characterName).width > nameArea.width && fontSize > 10) { fontSize--; ctx.font = `${fontSize}px "${fontName}"`; }
-        
         ctx.fillStyle = state.nameColor || '#ffffff';
-
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(state.characterName, nameArea.x + nameArea.width / 2, nameArea.y + nameArea.height / 2);
     };
 
     const redrawMiscBg = async () => { miscBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawMiscParts(miscBgCtx, 'bg'); await drawUiLayer(); };
     const redrawMiscFrame = async () => { miscFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawMiscParts(miscFrameCtx, 'frame'); await drawUiLayer(); };
-    
     const redrawSubJobBg = async () => { subJobBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawSubJobParts(subJobBgCtx, 'bg'); await drawUiLayer(); };
     const redrawSubJobFrame = async () => { subJobFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawSubJobParts(subJobFrameCtx, 'frame'); await drawUiLayer(); };
-
     const redrawMainJob = async () => { mainJobCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); await drawMainJobIcon(mainJobCtx); await drawUiLayer(); };
     const redrawName = async () => { await drawUiLayer(); };
-    
+
     const debouncedRedrawMisc = createDebouncer(async () => {
         miscBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         miscFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        await Promise.all([drawMiscParts(miscBgCtx, 'bg'), drawMiscParts(miscFrameCtx, 'frame')]);
+        await drawMiscParts(miscBgCtx, 'bg');
+        await drawMiscParts(miscFrameCtx, 'frame');
         await drawUiLayer();
     }, 50);
     
     const debouncedRedrawSubJob = createDebouncer(async () => {
         subJobBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         subJobFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        await Promise.all([drawSubJobParts(subJobBgCtx, 'bg'), drawSubJobParts(subJobFrameCtx, 'frame')]);
+        await drawSubJobParts(subJobBgCtx, 'bg');
+        await drawSubJobParts(subJobFrameCtx, 'frame');
         await drawUiLayer();
     }, 50);
 
@@ -378,12 +313,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         uiCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         const config = templateConfig[state.template];
         if (!config) return;
-
         uiCtx.drawImage(miscBgCanvas, 0, 0);
         uiCtx.drawImage(subJobBgCanvas, 0, 0);
-
         await drawTinted(uiCtx, getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), config.iconTint);
-
         uiCtx.drawImage(miscFrameCanvas, 0, 0);
         uiCtx.drawImage(subJobFrameCanvas, 0, 0);
         uiCtx.drawImage(mainJobCompositeCanvas, 0, 0);
@@ -392,6 +324,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const redrawAll = async () => {
         updateState();
+        
+        // ★メモリ負荷軽減のため、Promise.allを使用せず順番に実行する（モバイル対策）
         await drawTemplateLayer();
         
         miscBgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -400,107 +334,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         subJobFrameCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         mainJobCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        await Promise.all([
-            drawMiscParts(miscBgCtx, 'bg'),
-            drawMiscParts(miscFrameCtx, 'frame'),
-            drawSubJobParts(subJobBgCtx, 'bg'),
-            drawSubJobParts(subJobFrameCtx, 'frame'),
-            drawMainJobIcon(mainJobCtx)
-        ]);
+        // 直列実行
+        await drawMiscParts(miscBgCtx, 'bg');
+        await drawMiscParts(miscFrameCtx, 'frame');
+        await drawSubJobParts(subJobBgCtx, 'bg');
+        await drawSubJobParts(subJobFrameCtx, 'frame');
+        await drawMainJobIcon(mainJobCtx);
+        
         await drawUiLayer();
     };
 
     templateSelect.addEventListener('change', async () => {
         updateState();
-        
         if (!userHasManuallyPickedColor) {
             const config = templateConfig[state.template];
             if (config) {
-                let newColor = '#CCCCCC';
-                if (typeof config.defaultBg === 'object') {
-                    newColor = config.defaultBg.primary;
-                } else if (config.defaultBg) {
-                    newColor = config.defaultBg;
-                }
+                let newColor = (typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config.defaultBg || '#CCCCCC');
                 iconBgColorPicker.value = newColor;
                 stickyIconBgColorPicker.value = newColor;
             }
         }
-
         if (!userHasManuallyPickedTextColor) {
             const config = templateConfig[state.template];
-            if (config && config.nameColor) {
-                textColorPicker.value = config.nameColor;
-            }
+            if (config && config.nameColor) textColorPicker.value = config.nameColor;
         }
-
         await redrawAll();
     });
     positionSelect.addEventListener('change', async () => { updateState(); await redrawAll(); });
-    
-    textColorPicker.addEventListener('input', () => {
-        userHasManuallyPickedTextColor = true;
-        updateState();
-        debouncedRedrawName();
-    });
-
-    const handleColorInput = (s, t) => { 
-        userHasManuallyPickedColor = true; 
-        t.value = s.value; 
-        updateState(); 
-        debouncedRedrawMisc(); 
-        debouncedRedrawSubJob(); 
-        debouncedTrackColor(s.value); 
-    };
+    textColorPicker.addEventListener('input', () => { userHasManuallyPickedTextColor = true; updateState(); debouncedRedrawName(); });
+    const handleColorInput = (s, t) => { userHasManuallyPickedColor = true; t.value = s.value; updateState(); debouncedRedrawMisc(); debouncedRedrawSubJob(); debouncedTrackColor(s.value); };
     iconBgColorPicker.addEventListener('input', () => handleColorInput(iconBgColorPicker, stickyIconBgColorPicker));
     stickyIconBgColorPicker.addEventListener('input', () => handleColorInput(stickyIconBgColorPicker, iconBgColorPicker));
-    
     const resetColorAction = () => {
         userHasManuallyPickedColor = false;
         const config = templateConfig[templateSelect.value];
-        let defaultColor = '#CCCCCC';
-        if (config) {
-            if (typeof config.defaultBg === 'object') {
-                defaultColor = config.defaultBg.primary;
-            } else if (config.defaultBg) {
-                defaultColor = config.defaultBg;
-            }
-        }
+        let defaultColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config && config.defaultBg) ? config.defaultBg : '#CCCCCC';
         iconBgColorPicker.value = defaultColor;
         stickyIconBgColorPicker.value = defaultColor;
-        updateState();
-        debouncedRedrawMisc();
-        debouncedRedrawSubJob();
+        updateState(); debouncedRedrawMisc(); debouncedRedrawSubJob();
     };
     resetColorBtn.addEventListener('click', resetColorAction);
     stickyResetColorBtn.addEventListener('click', resetColorAction);
     [dcSelect, raceSelect, progressSelect].forEach(el => el.addEventListener('change', () => { updateState(); debouncedRedrawMisc(); }));
     [styleButtonsContainer, playtimeOptionsContainer, difficultyOptionsContainer].forEach(c => c.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') e.target.classList.toggle('active'); if (e.target.tagName === 'BUTTON' || e.target.type === 'checkbox') { updateState(); debouncedRedrawMisc(); }}));
-    
     mainjobSelect.addEventListener('change', (e) => {
         updateState();
         const newMainJob = e.target.value;
-
-        if (newMainJob) {
-            const targetBtn = subjobSection.querySelector(`button[data-value="${newMainJob}"]`);
-            if (targetBtn) {
-                targetBtn.classList.add('active');
-            }
-        }
-        
-        updateState();
-        debouncedRedrawMainJob(); 
-        debouncedRedrawSubJob();
+        if (newMainJob) { const targetBtn = subjobSection.querySelector(`button[data-value="${newMainJob}"]`); if (targetBtn) targetBtn.classList.add('active'); }
+        updateState(); debouncedRedrawMainJob(); debouncedRedrawSubJob();
     });
-
-    subjobSection.addEventListener('click', (e) => { 
-        if (e.target.tagName === 'BUTTON') {
-            e.target.classList.toggle('active'); 
-            updateState(); 
-            debouncedRedrawSubJob(); 
-        }
-    });
-
+    subjobSection.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { e.target.classList.toggle('active'); updateState(); debouncedRedrawSubJob(); } });
     nameInput.addEventListener('input', () => { updateState(); debouncedRedrawName(); });
     fontSelect.addEventListener('change', () => { updateState(); debouncedRedrawName(); });
     uploadImageInput.addEventListener('change', (e) => {
@@ -521,6 +404,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
         reader.readAsDataURL(file);
     });
+
     const handleDrag = (e, isTouch = false) => {
         if (!imageTransform.isDragging || !imageTransform.img) return;
         e.preventDefault();
@@ -557,12 +441,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             finalCanvas.width = CANVAS_WIDTH; finalCanvas.height = CANVAS_HEIGHT;
             const finalCtx = finalCanvas.getContext('2d');
             if (imageTransform.img) finalCtx.drawImage(backgroundLayer, 0, 0);
-            else {
-                finalCtx.fillStyle = '#000000';
-                finalCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            }
+            else { finalCtx.fillStyle = '#000000'; finalCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); }
             await drawTinted(finalCtx, getAssetPath({ category: 'base', filename: `${state.template}_cp` }));
-            
             finalCtx.drawImage(miscBgCanvas, 0, 0);
             finalCtx.drawImage(subJobBgCanvas, 0, 0);
             await drawTinted(finalCtx, getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), templateConfig[state.template].iconTint);
@@ -570,7 +450,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             finalCtx.drawImage(subJobFrameCanvas, 0, 0);
             finalCtx.drawImage(mainJobCompositeCanvas, 0, 0);
             await drawNameText(finalCtx);
-            
             const imageUrl = finalCanvas.toDataURL('image/jpeg', 0.92);
             if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) { modalImage.src = imageUrl; saveModal.classList.remove('hidden'); }
             else { const link = document.createElement('a'); link.download = 'ffxiv_character_card_vertical.jpeg'; link.href = imageUrl; link.click(); }
@@ -583,71 +462,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const initMobileUI = () => {
         if (window.innerWidth > 768) return;
-
-        const actionBar = document.createElement('div');
-        actionBar.className = 'mobile-action-bar';
-        
-        const settingsBtn = document.createElement('button');
-        settingsBtn.className = 'mobile-action-btn btn-secondary';
-        settingsBtn.innerHTML = '⚙️ 設定・入力';
-        
-        const saveBtnMobile = document.createElement('button');
-        saveBtnMobile.className = 'mobile-action-btn btn-primary';
-        saveBtnMobile.innerHTML = '📥 画像保存';
-
-        actionBar.appendChild(settingsBtn);
-        actionBar.appendChild(saveBtnMobile);
-        document.body.appendChild(actionBar);
-
+        const actionBar = document.createElement('div'); actionBar.className = 'mobile-action-bar';
+        const settingsBtn = document.createElement('button'); settingsBtn.className = 'mobile-action-btn btn-secondary'; settingsBtn.innerHTML = '⚙️ 設定・入力';
+        const saveBtnMobile = document.createElement('button'); saveBtnMobile.className = 'mobile-action-btn btn-primary'; saveBtnMobile.innerHTML = '📥 画像保存';
+        actionBar.appendChild(settingsBtn); actionBar.appendChild(saveBtnMobile); document.body.appendChild(actionBar);
         const controlsPanel = document.querySelector('.controls-panel');
-        
-        // DOM要素が存在するかチェック
         if (!controlsPanel) return;
-
-        const sheetHeader = document.createElement('div');
-        sheetHeader.className = 'bottom-sheet-header';
-        const handleBar = document.createElement('div');
-        handleBar.className = 'sheet-handle-bar';
+        const sheetHeader = document.createElement('div'); sheetHeader.className = 'bottom-sheet-header';
+        const handleBar = document.createElement('div'); handleBar.className = 'sheet-handle-bar';
         sheetHeader.appendChild(handleBar);
-        
         controlsPanel.insertBefore(sheetHeader, controlsPanel.firstChild);
-
-        settingsBtn.addEventListener('click', () => {
-            controlsPanel.classList.toggle('is-open');
-        });
-
-        sheetHeader.addEventListener('click', () => {
-            controlsPanel.classList.remove('is-open');
-        });
-
-        saveBtnMobile.addEventListener('click', () => {
-            downloadBtn.click();
-        });
+        settingsBtn.addEventListener('click', () => { controlsPanel.classList.toggle('is-open'); });
+        sheetHeader.addEventListener('click', () => { controlsPanel.classList.remove('is-open'); });
+        saveBtnMobile.addEventListener('click', () => { downloadBtn.click(); });
     };
 
     const initialize = async () => {
         try {
-            // --- 修正ポイント: Canvasの解像度をHTML属性として確実にセット ---
+            // Canvasサイズ設定
             const canvases = [backgroundLayer, characterLayer, uiLayer];
-            canvases.forEach(c => {
-                if(c) {
-                    c.width = CANVAS_WIDTH;
-                    c.height = CANVAS_HEIGHT;
-                }
-            });
-            // ---------------------------------------------------------
+            canvases.forEach(c => { if(c) { c.width = CANVAS_WIDTH; c.height = CANVAS_HEIGHT; } });
 
-            iconBgColorPicker.value = '#CCCCCC'; // 初期値セット
+            iconBgColorPicker.value = '#CCCCCC';
             stickyIconBgColorPicker.value = '#CCCCCC';
             
-            // 画面の表示を優先
             loaderElement.style.display = 'none';
             appElement.style.visibility = 'visible';
             
-            // Canvasを黒く塗る（画像がなくても枠が見えるように）
             drawCharacterLayer();
-
-            // 重い処理は後回し
             await preloadFonts();
             fontSelect.value = state.font;
             
@@ -657,17 +499,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             stickyIconBgColorPicker.value = initialColor;
             
             await redrawAll();
-            
-            // スマホメニュー構築
-            try {
-                initMobileUI(); 
-            } catch(e) {
-                console.warn("Mobile UI init failed", e);
-            }
 
+            // ★追加: 描画バグ防止のため、少し待ってから強制再描画
+            setTimeout(() => {
+                drawCharacterLayer();
+                drawUiLayer();
+            }, 500);
+            
+            try { initMobileUI(); } catch(e) { console.warn("Mobile UI init failed", e); }
         } catch (e) {
             console.error("Initialization error:", e);
-            // エラーが起きても最低限画面は表示させる
             loaderElement.style.display = 'none';
             appElement.style.visibility = 'visible';
         }
