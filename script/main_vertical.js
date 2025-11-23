@@ -1,8 +1,9 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Final Optimized Version (Single Canvas)
+ * Final Clean Version (Single Canvas)
  */
 
+// デバッグ用コンソール（不要なら削除可）
 const initDebugConsole = () => {
     const consoleDiv = document.createElement('div');
     consoleDiv.id = 'debug-console';
@@ -28,7 +29,7 @@ initDebugConsole();
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // --- デバイス判定と設定 ---
+        // --- 1. デバイス判定とCanvas設定 ---
         const userAgent = navigator.userAgent.toLowerCase();
         const isMobileUA = /iphone|android|ipad|mobile/.test(userAgent);
         const isSmallScreen = window.innerWidth <= 1024; 
@@ -37,25 +38,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
         
-        // モバイルなら解像度を0.5倍に落としてメモリ節約
+        // スマホなら内部解像度を0.5倍にしてメモリを節約（見た目はCSSで調整）
         const SCALE_FACTOR = isMobile ? 0.5 : 1.0;
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
 
         window.logToScreen(`Mode: ${isMobile ? 'Mobile(0.5x)' : 'PC(1.0x)'}`);
 
-        // ★Canvasは1つだけ取得
+        // ★Canvasは1つだけ（これが正解）
         const canvas = document.getElementById('preview-canvas');
+        if (!canvas) throw new Error("Canvas element 'preview-canvas' not found!");
+        
         const ctx = canvas.getContext('2d');
 
         // サイズ適用
         canvas.width = CANVAS_WIDTH;
         canvas.height = CANVAS_HEIGHT;
 
-        // スケール設定（これ以降の描画命令はBASE_WIDTH基準でOK）
+        // スケール設定（これ以降の描画命令はBASE_WIDTH(850x1200)基準で記述できる）
         ctx.scale(SCALE_FACTOR, SCALE_FACTOR);
 
-        // UI要素
+        // --- 2. DOM要素の取得 ---
         const nameInput = document.getElementById('nameInput');
         const fontSelect = document.getElementById('fontSelect');
         const uploadImageInput = document.getElementById('uploadImage');
@@ -85,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const stickyIconBgColorPicker = document.getElementById('stickyIconBgColorPicker');
         const stickyResetColorBtn = document.getElementById('stickyResetColorBtn');
 
+        // --- 3. 定数・変数定義 ---
         const NAME_COORDS = {
             _left:  { x: 211, y: 1073, width: 442, height: 70 },
             _right: { x: 197, y: 1073, width: 442, height: 70 }
@@ -136,6 +140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let userHasManuallyPickedColor = false;
         let userHasManuallyPickedTextColor = false;
 
+        // --- 4. ヘルパー関数群 ---
         const getAssetPath = (options) => {
             const isEn = currentLang === 'en';
             let langSuffix = '';
@@ -157,17 +162,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         };
 
-        // 画像描画ヘルパー（1枚のCanvasに直接描く）
+        // Tint処理してメインCanvasに描画する関数
         const drawTinted = async (path, tintColor) => {
             const img = await loadImage(path);
             if (!img) return;
             
-            // 一時的な作業用Canvas (メモリ節約のため都度作成して破棄)
+            // 一時Canvas（サイズは現在の解像度に合わせて小さく作る）
             const tempC = document.createElement('canvas');
-            tempC.width = CANVAS_WIDTH; // 実際の解像度
+            tempC.width = CANVAS_WIDTH;
             tempC.height = CANVAS_HEIGHT;
             const tempCtx = tempC.getContext('2d');
-            tempCtx.scale(SCALE_FACTOR, SCALE_FACTOR); // ここもスケール
+            tempCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
 
             tempCtx.drawImage(img, 0, 0, BASE_WIDTH, BASE_HEIGHT);
             
@@ -177,18 +182,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tempCtx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             }
             
-            // メインCanvasに転写 (スケール済みコンテキストになので、等倍で転写)
-            // 注意: ctx.drawImageに別Canvasを渡すと、現在のtransformの影響を受ける。
-            // 一度transformをリセットして転写するか、座標計算が必要。
-            // ここではシンプルにするため、作業用Canvasからイメージデータとして扱うより、
-            // メインCanvasのコンポジット操作を変えて直接塗るほうが軽いが、
-            // tint処理が必要なので、作業用Canvasの結果をメインに描く。
-            // メインctxはすでにscaleされているので、描画サイズはBASE_WIDTHにする
-            
-            // 作業用Canvasはすでに縮小されているので、メインに描くときは
-            // scaleを一時的に解除しないと「縮小×縮小」になってしまう。
+            // メインCanvasに転写（scaleを一時的に戻して等倍転写）
             ctx.save();
-            ctx.setTransform(1, 0, 0, 1, 0, 0); // リセット
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.drawImage(tempC, 0, 0);
             ctx.restore();
         };
@@ -230,31 +226,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             return state.iconBgColor;
         };
 
-        // --- メイン描画処理 (すべてを1つのCanvasに積み重ねる) ---
+        // --- 5. メイン描画処理 (すべてのレイヤーを1つのCanvasに順に描く) ---
         const redrawAll = async () => {
             updateState();
             
             try {
-                // 1. クリア & 黒背景
-                // scaleが効いているので、BASE_WIDTHでクリア
+                // (1) 全消去 & 黒背景
                 ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
                 ctx.fillStyle = '#000000';
                 ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
-                // 2. キャラクター画像
+                // (2) ユーザー画像
                 if (imageTransform.img) {
                     ctx.save();
-                    // ユーザー操作(x, y)もBASE_WIDTH基準
                     ctx.translate(imageTransform.x, imageTransform.y);
                     ctx.scale(imageTransform.scale, imageTransform.scale);
                     ctx.drawImage(imageTransform.img, -imageTransform.img.width / 2, -imageTransform.img.height / 2);
                     ctx.restore();
                 }
 
-                // 3. テンプレート枠
+                // (3) テンプレート枠
                 await drawTinted(getAssetPath({ category: 'base', filename: `${state.template}_cp` }));
 
-                // 4. 各種パーツ
+                // (4) 各種パーツ
                 const config = templateConfig[state.template];
                 const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
 
@@ -341,7 +335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const debouncedRedrawAll = createDebouncer(redrawAll, 300);
 
-        // --- イベントリスナー ---
+        // --- 6. イベントリスナー ---
         templateSelect.addEventListener('change', async () => {
             updateState();
             if (!userHasManuallyPickedColor) {
@@ -420,21 +414,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!imageTransform.isDragging || !imageTransform.img) return;
             e.preventDefault();
             const loc = isTouch ? e.touches[0] : e;
-            // マウス移動量をBASE_WIDTH基準に補正
-            // 画面上の1pxが内部で何pxに相当するか？
-            // canvas.clientWidth (表示幅) と BASE_WIDTH の比率が必要だが、
-            // 簡易的に SCALE_FACTOR の逆数で補正する（低解像度モードでは移動量が倍になる感覚を防ぐ）
-            // ただしCSSで幅が変動するため完全ではない。操作感重視で微調整不要。
-            const dx = (loc.clientX - imageTransform.lastX) * 2; // 感度調整
+            const dx = (loc.clientX - imageTransform.lastX) * 2; 
             const dy = (loc.clientY - imageTransform.lastY) * 2;
             imageTransform.x += dx; imageTransform.y += dy; imageTransform.lastX = loc.clientX; imageTransform.lastY = loc.clientY; 
-            redrawAll(); // ドラッグ中は再描画しまくる（重い場合は要調整）
+            redrawAll(); 
         };
         canvas.addEventListener('mousedown', (e) => { if (!imageTransform.img) return; imageTransform.isDragging = true; imageTransform.lastX = e.clientX; imageTransform.lastY = e.clientY; });
         window.addEventListener('mousemove', (e) => handleDrag(e, false));
         window.addEventListener('mouseup', () => { imageTransform.isDragging = false; });
         
-        // Touch Events (Passive false to prevent scroll)
         canvas.addEventListener('touchstart', (e) => {
             if (!imageTransform.img) return;
             e.preventDefault();
@@ -457,7 +445,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             isDownloading = true;
             downloadBtn.querySelector('span').textContent = translations[currentLang].generating;
             try {
-                // ダウンロード時は現在のCanvasをそのまま画像化
                 const imageUrl = canvas.toDataURL('image/jpeg', 0.92);
                 if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) { 
                     modalImage.src = imageUrl; 
