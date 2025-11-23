@@ -1,6 +1,6 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Absolute Display Fix Version
+ * Force Style Injection Version
  */
 document.addEventListener('DOMContentLoaded', async () => {
 
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const drawCharacterLayer = () => {
-        // ★重要: 背景を黒で塗りつぶす (ホワイトアウト対策)
+        // ★重要: JSで強制的に黒塗りを実行
         bgCtx.fillStyle = '#000000';
         bgCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -267,22 +267,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // ★修正: CSVの内容に基づいて番号を修正
         const playstyleBgNumMap = {
             leveling: '01',
-            raid: '06',      // 2->6
+            raid: '06',
             pvp: '03',
-            dd: '14',        // 4->14
-            hunt: '09',      // 5->9
-            map: '08',       // 6->8
-            gatherer: '05',  // 7->5
-            crafter: '07',   // 8->7
-            gil: '02',       // 9->2
+            dd: '14',
+            hunt: '09',
+            map: '08',
+            gatherer: '05',
+            crafter: '07',
+            gil: '02',
             perform: '10',
-            streaming: '12', // 11->12
-            glam: '04',      // 12->4
+            streaming: '12',
+            glam: '04',
             studio: '13',
-            housing: '11',   // 14->11
+            housing: '11',
             screenshot: '15',
             drawing: '16',
             roleplay: '17'
@@ -558,7 +557,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const finalCtx = finalCanvas.getContext('2d');
             if (imageTransform.img) finalCtx.drawImage(backgroundLayer, 0, 0);
             else {
-                // ★修正: ダウンロード時も黒背景を適用
                 finalCtx.fillStyle = '#000000';
                 finalCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             }
@@ -582,7 +580,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('scroll', () => { const rect = mainColorPickerSection.getBoundingClientRect(); if (rect.bottom < 50) stickyColorDrawer.classList.remove('is-hidden'); else { stickyColorDrawer.classList.add('is-hidden'); stickyColorDrawer.classList.add('is-closed'); }});
     drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
 
-    // ★追加: スマホ用のアクションバーとボトムシート制御
     const initMobileUI = () => {
         if (window.innerWidth > 768) return;
 
