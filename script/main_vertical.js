@@ -1,7 +1,30 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Simple Layout & Single Canvas
+ * High Resolution + Single Canvas Optimized
  */
+
+const initDebugConsole = () => {
+    const consoleDiv = document.createElement('div');
+    consoleDiv.id = 'debug-console';
+    consoleDiv.style.cssText = `
+        position: fixed; bottom: 0; left: 0; width: 100%; height: 20vh;
+        background: rgba(0, 0, 0, 0.85); color: #00ff00;
+        font-family: monospace; font-size: 10px;
+        overflow-y: scroll; z-index: 99999;
+        padding: 10px; border-top: 2px solid #00ff00;
+        pointer-events: none; display: none;
+    `;
+    document.body.appendChild(consoleDiv);
+
+    window.logToScreen = (msg, type = 'INFO') => {
+        console.log(`[${type}] ${msg}`);
+        const line = document.createElement('div');
+        line.textContent = `> ${msg}`;
+        if(type === 'ERROR') line.style.color = 'red';
+        consoleDiv.appendChild(line);
+    };
+};
+// initDebugConsole();
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -14,8 +37,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
         
-        // メモリ節約のためスマホは内部解像度0.5倍
-        const SCALE_FACTOR = isMobile ? 0.5 : 1.0;
+        // ★修正: 画質優先のため、スマホでも解像度を下げない (1.0)
+        // Canvas枚数を1枚に減らしたため、これで耐えられるはずです
+        const SCALE_FACTOR = 1.0; 
+        
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
 
@@ -23,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const canvas = document.getElementById('preview-canvas');
         if (!canvas) throw new Error("Canvas element 'preview-canvas' not found!");
         
-        // 不透明モードでコンテキスト作成
+        // 不透明モード(alpha: false)はメモリ節約に効くので維持
         const ctx = canvas.getContext('2d', { alpha: false });
 
         // サイズ適用
@@ -296,6 +321,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (config) {
                     let newColor = (typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config.defaultBg || '#CCCCCC');
                     iconBgColorPicker.value = newColor;
+                    stickyIconBgColorPicker.value = newColor;
                 }
             }
             if (!userHasManuallyPickedTextColor) {
@@ -308,17 +334,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         positionSelect.addEventListener('change', async () => { updateState(); await redrawAll(); });
         textColorPicker.addEventListener('input', () => { userHasManuallyPickedTextColor = true; updateState(); debouncedRedrawAll(); });
         
-        const handleColorInput = (s) => { userHasManuallyPickedColor = true; updateState(); debouncedRedrawAll(); };
-        iconBgColorPicker.addEventListener('input', () => handleColorInput(iconBgColorPicker));
+        const handleColorInput = (s, t) => { userHasManuallyPickedColor = true; t.value = s.value; updateState(); debouncedRedrawAll(); };
+        iconBgColorPicker.addEventListener('input', () => handleColorInput(iconBgColorPicker, stickyIconBgColorPicker));
+        stickyIconBgColorPicker.addEventListener('input', () => handleColorInput(stickyIconBgColorPicker, iconBgColorPicker));
         
         const resetColorAction = () => {
             userHasManuallyPickedColor = false;
             const config = templateConfig[templateSelect.value];
             let defaultColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config && config.defaultBg) ? config.defaultBg : '#CCCCCC';
             iconBgColorPicker.value = defaultColor;
+            stickyIconBgColorPicker.value = defaultColor;
             updateState(); debouncedRedrawAll();
         };
         resetColorBtn.addEventListener('click', resetColorAction);
+        stickyResetColorBtn.addEventListener('click', resetColorAction);
 
         [dcSelect, raceSelect, progressSelect].forEach(el => el.addEventListener('change', () => { updateState(); debouncedRedrawAll(); }));
         [styleButtonsContainer, playtimeOptionsContainer, difficultyOptionsContainer].forEach(c => c.addEventListener('click', (e) => { 
@@ -362,10 +391,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!imageTransform.isDragging || !imageTransform.img) return;
             e.preventDefault();
             const loc = isTouch ? e.touches[0] : e;
-            // マウス移動量はCanvasの表示サイズ基準なので、内部解像度(BASE_WIDTH)への変換が必要
-            // 簡易的に SCALE_FACTOR の逆数で補正
-            const dx = (loc.clientX - imageTransform.lastX) * (1 / SCALE_FACTOR); 
-            const dy = (loc.clientY - imageTransform.lastY) * (1 / SCALE_FACTOR);
+            const dx = (loc.clientX - imageTransform.lastX) * 2; 
+            const dy = (loc.clientY - imageTransform.lastY) * 2;
             imageTransform.x += dx; imageTransform.y += dy; imageTransform.lastX = loc.clientX; imageTransform.lastY = loc.clientY; 
             redrawAll(); 
         };
@@ -412,10 +439,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
         closeModalBtn.addEventListener('click', () => { saveModal.classList.add('hidden'); });
+        window.addEventListener('scroll', () => { const rect = mainColorPickerSection.getBoundingClientRect(); if (rect.bottom < 50) stickyColorDrawer.classList.remove('is-hidden'); else { stickyColorDrawer.classList.add('is-hidden'); stickyColorDrawer.classList.add('is-closed'); }});
+        drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
+
+        const initMobileUI = () => {
+            if (window.innerWidth > 768) return;
+            const actionBar = document.createElement('div'); actionBar.className = 'mobile-action-bar';
+            const settingsBtn = document.createElement('button'); settingsBtn.className = 'mobile-action-btn btn-secondary'; settingsBtn.innerHTML = '⚙️ 設定・入力';
+            const saveBtnMobile = document.createElement('button'); saveBtnMobile.className = 'mobile-action-btn btn-primary'; saveBtnMobile.innerHTML = '📥 画像保存';
+            actionBar.appendChild(settingsBtn); actionBar.appendChild(saveBtnMobile); document.body.appendChild(actionBar);
+            const controlsPanel = document.querySelector('.controls-panel');
+            if (!controlsPanel) return;
+            const sheetHeader = document.createElement('div'); sheetHeader.className = 'bottom-sheet-header';
+            const handleBar = document.createElement('div'); handleBar.className = 'sheet-handle-bar';
+            sheetHeader.appendChild(handleBar);
+            controlsPanel.insertBefore(sheetHeader, controlsPanel.firstChild);
+            settingsBtn.addEventListener('click', () => { controlsPanel.classList.toggle('is-open'); });
+            sheetHeader.addEventListener('click', () => { controlsPanel.classList.remove('is-open'); });
+            saveBtnMobile.addEventListener('click', () => { downloadBtn.click(); });
+        };
 
         const initialize = async () => {
             try {
                 iconBgColorPicker.value = '#CCCCCC';
+                stickyIconBgColorPicker.value = '#CCCCCC';
                 loaderElement.style.display = 'none';
                 appElement.style.visibility = 'visible';
                 
@@ -425,10 +472,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const config = templateConfig[templateSelect.value];
                 const initialColor = (config && typeof config.defaultBg === 'object') ? config.defaultBg.primary : (config && config.defaultBg) ? config.defaultBg : '#CCCCCC';
                 iconBgColorPicker.value = initialColor;
+                stickyIconBgColorPicker.value = initialColor;
                 
                 await redrawAll();
+                try { initMobileUI(); } catch(e) { console.warn("Mobile UI init failed", e); }
+                window.logToScreen('Init complete.', 'SUCCESS');
             } catch (e) {
-                console.error("Initialization error:", e);
+                window.logToScreen(`Init failed: ${e.message}`, 'ERROR');
                 loaderElement.style.display = 'none';
                 appElement.style.visibility = 'visible';
             }
@@ -436,6 +486,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         initialize();
 
     } catch (mainError) {
-        console.error(mainError);
+        window.logToScreen(`Script Error: ${mainError.message}`, 'ERROR');
     }
 });

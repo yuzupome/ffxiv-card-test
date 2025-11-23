@@ -94,29 +94,40 @@ body.generator-page #app { visibility: hidden; }
 
 #controls { display: flex; flex-direction: column; gap: 2.5rem; }
 
-/* --- PCレイアウト (769px以上: 横並び) --- */
+/* --- PCレイアウト (769px以上: 横並び & 固定) --- */
 @media (min-width: 769px) {
     .content-wrapper {
         flex-direction: row;
         max-width: 1280px;
         padding: 2rem;
-        align-items: flex-start; /* 上揃え */
+        align-items: flex-start; /* 重要: これがないとstickyが効かない場合がある */
     }
   
     .preview-panel {
         flex: 1;
         min-width: 460px;
         max-width: 800px;
+        
+        /* ★修正: スクロール追従設定 */
         position: sticky;
-        top: 20px; /* ヘッダー分など調整 */
+        top: 90px; /* ヘッダー(約70px) + 余白(20px) = 90px */
+        align-self: flex-start;
+        z-index: 10;
     }
 
     /* PC版 Canvas: 高さ制限 */
     .canvas-wrapper {
         padding-top: 0 !important;
-        height: 85vh !important;
+        
+        /* ★修正: 画面内に収まるよう高さを計算 */
+        height: auto !important;
+        /* 画面高さ - (ヘッダー + 上下余白) に収める */
+        max-height: calc(100vh - 120px) !important;
+        
+        /* 幅は高さとアスペクト比から自動決定 */
         width: auto !important;
         aspect-ratio: 850 / 1200;
+        
         margin-left: auto;
         margin-right: auto;
         border-radius: 12px;
@@ -127,6 +138,7 @@ body.generator-page #app { visibility: hidden; }
         flex: 1;
         min-width: 360px;
         padding-left: 2rem;
+        /* 右側はスクロールさせるので特に固定しない */
     }
 }
 
@@ -193,7 +205,7 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
 .text-color-row { margin-top: 1rem; display: flex; align-items: center; gap: 1rem; }
 
 /* フッター */
-.site-footer { display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 3rem 1rem; border-top: 1px solid var(--border-color); color: var(--text-secondary-color); font-size: 0.9rem; margin-top: 3rem; }
+.site-footer { display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 3rem 1rem; border-top: 1px solid var(--border-color); color: var(--text-secondary-color); font-size: 0.9rem; margin-top: 3rem; padding-bottom: 3rem; }
 .site-footer a { color: var(--text-secondary-color); text-decoration: none; transition: color 0.2s ease; }
 .footer-to-top { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
 
