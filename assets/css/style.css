@@ -35,14 +35,17 @@ body.generator-page #app { visibility: hidden; }
 .header-logo { width: 32px; height: 32px; }
 .header-title { margin: 0; font-size: clamp(1rem, 4vw, 1.25rem); font-weight: 600; font-family: 'Orbitron', sans-serif; white-space: nowrap; }
 
-/* メインレイアウト (共通: 基本は縦並び) */
+/* =========================================
+   レイアウト共通 (Mobile First)
+   ========================================= */
+
 .content-wrapper {
     padding: 2rem 1rem;
     max-width: 100%;
     margin: 0 auto;
     flex-grow: 1;
     display: flex;
-    flex-direction: column; /* スマホデフォルト: 縦並び */
+    flex-direction: column;
     gap: 2rem;
 }
 
@@ -50,7 +53,7 @@ body.generator-page #app { visibility: hidden; }
 .preview-panel {
     width: 100%;
     position: relative;
-    z-index: 1;
+    z-index: 100; /* 入力欄より手前に来るように */
 }
 
 /* Canvasコンテナ */
@@ -61,7 +64,7 @@ body.generator-page #app { visibility: hidden; }
     justify-content: center;
 }
 
-/* Canvasラッパー (スマホ用: 幅いっぱい) */
+/* Canvasラッパー (スマホ用デフォルト) */
 .canvas-wrapper {
     position: relative;
     width: 100%;
@@ -76,6 +79,7 @@ body.generator-page #app { visibility: hidden; }
     border: 1px solid var(--border-color);
     background-color: #000000 !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease; /* スムーズな変形用 */
 }
 
 .canvas-wrapper canvas {
@@ -86,48 +90,42 @@ body.generator-page #app { visibility: hidden; }
     object-fit: contain;
 }
 
-/* 設定パネル (スマホ用: そのまま下に表示) */
+/* コントロールパネル (スマホ: そのまま下に表示) */
 .controls-panel {
     width: 100%;
     background-color: var(--bg-color);
+    z-index: 1;
 }
 
 #controls { display: flex; flex-direction: column; gap: 2.5rem; }
 
-/* --- PCレイアウト (769px以上: 横並び & 固定) --- */
+/* =========================================
+   PC用レイアウト (769px以上)
+   ========================================= */
 @media (min-width: 769px) {
     .content-wrapper {
         flex-direction: row;
         max-width: 1280px;
         padding: 2rem;
-        align-items: flex-start; /* 重要: これがないとstickyが効かない場合がある */
+        align-items: flex-start;
     }
   
     .preview-panel {
         flex: 1;
         min-width: 460px;
         max-width: 800px;
-        
-        /* ★修正: スクロール追従設定 */
         position: sticky;
-        top: 90px; /* ヘッダー(約70px) + 余白(20px) = 90px */
+        top: 90px; 
         align-self: flex-start;
         z-index: 10;
     }
 
-    /* PC版 Canvas: 高さ制限 */
     .canvas-wrapper {
         padding-top: 0 !important;
-        
-        /* ★修正: 画面内に収まるよう高さを計算 */
         height: auto !important;
-        /* 画面高さ - (ヘッダー + 上下余白) に収める */
         max-height: calc(100vh - 120px) !important;
-        
-        /* 幅は高さとアスペクト比から自動決定 */
         width: auto !important;
         aspect-ratio: 850 / 1200;
-        
         margin-left: auto;
         margin-right: auto;
         border-radius: 12px;
@@ -138,54 +136,77 @@ body.generator-page #app { visibility: hidden; }
         flex: 1;
         min-width: 360px;
         padding-left: 2rem;
-        /* 右側はスクロールさせるので特に固定しない */
     }
 }
 
-/* --- パーツスタイル --- */
+/* =========================================
+   ★追加: スマホ用 ミニ・スティッキー・プレビュー (768px以下)
+   ========================================= */
+@media (max-width: 768px) {
+    .preview-panel {
+        /* 上部に張り付く設定 */
+        position: sticky;
+        top: 10px; /* 上端から少し空ける */
+        
+        /* 縮小表示のための設定 */
+        /* コンテンツ幅は保ちつつ、高さを制限してスクロールさせるわけではなく、
+           全体を縮小して表示させるアプローチ */
+        display: flex;
+        justify-content: center;
+        pointer-events: none; /* 張り付いている間は裏の要素を触れるように...したいがCanvas操作もあるので今回はON */
+        pointer-events: auto;
+    }
 
-/* セクション */
+    /* スティッキー時のCanvasラッパー 
+       高さを画面の30%程度に抑え、それに合わせて幅も自動縮小させる
+    */
+    .canvas-wrapper {
+        padding-top: 0 !important; /* paddingハック解除 */
+        height: 30vh !important;   /* 高さを画面の30%に制限 */
+        width: auto !important;    /* 幅は自動 */
+        aspect-ratio: 850 / 1200;  /* 比率維持 */
+        
+        margin: 0 auto;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3); /* 浮いている感を出す影 */
+        border: 2px solid var(--primary-color); /* 枠線で目立たせる */
+    }
+
+    /* 補足: これで「常に小さいプレビュー」になります。
+      もし「最初は大きく、スクロールしたら小さく」したい場合はJSが必要ですが、
+      「常に小さい」ほうが入力中の確認には便利です（最初から全体が見えるので）。
+      画像をタップしたら拡大するモーダルなどを後でつけても良いでしょう。
+    */
+}
+
+
+/* --- パーツスタイル (以下変更なし) --- */
 .control-section { padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
 #controls > div:first-of-type { border-top: none; padding-top: 0; }
 .section-title { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem 0; color: var(--text-color); }
 .section-title-nested { font-size: 0.95rem; margin-bottom: 1rem; color: var(--text-secondary-color); font-family: 'Orbitron', sans-serif; }
 
-/* フォーム要素 */
 #top-controls { display: flex; flex-direction: column; gap: 1rem; }
-input[type="text"], select {
-    width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); padding: 0.8rem; border-radius: 8px; font-size: 1rem; color: var(--text-color);
-}
+input[type="text"], select { width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); padding: 0.8rem; border-radius: 8px; font-size: 1rem; color: var(--text-color); }
 input[type="text"]:focus, select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.2); }
 
-/* 画像アップロードボタン */
-.file-upload-label {
-    display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; color: var(--text-secondary-color); cursor: pointer; transition: all 0.2s ease;
-}
+.file-upload-label { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; color: var(--text-secondary-color); cursor: pointer; transition: all 0.2s ease; }
 .file-upload-label:hover { border-color: var(--primary-color); color: var(--primary-color); }
 .file-upload-input { display: none; }
 .file-name-display { font-size: 0.85rem; color: var(--text-secondary-color); text-align: center; margin-top: 0.5rem; height: 1.2em; }
 
-/* グリッド */
 .grid-col-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .grid-col-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
 .grid-break { flex-basis: 100%; height: 0; }
 
-/* 丸いボタン (Play Styleなど) */
 .button-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.button-grid button {
-    background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-secondary-color); padding: 0.5rem 1rem; border-radius: 50px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s ease;
-}
+.button-grid button { background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-secondary-color); padding: 0.5rem 1rem; border-radius: 50px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s ease; }
 .button-grid button:hover { border-color: var(--primary-hover-color); color: var(--primary-hover-color); }
 .button-grid button.active { background-color: var(--primary-color); border-color: var(--primary-color); color: white; }
 
-/* 生成ボタン */
-.generate-btn {
-    display: flex; align-items: center; justify-content: center; gap: 0.75rem; width: 100%; background-color: var(--surface-color); color: var(--text-color); font-size: 1.1rem; font-weight: 600; border: 1px solid var(--border-color); padding: 1.2rem; border-radius: 8px; cursor: pointer; margin-top: 2rem; transition: all 0.2s ease;
-}
+.generate-btn { display: flex; align-items: center; justify-content: center; gap: 0.75rem; width: 100%; background-color: var(--surface-color); color: var(--text-color); font-size: 1.1rem; font-weight: 600; border: 1px solid var(--border-color); padding: 1.2rem; border-radius: 8px; cursor: pointer; margin-top: 2rem; transition: all 0.2s ease; }
 .generate-btn:hover { background-color: #f3f4f6; border-color: var(--primary-hover-color); }
 .generate-btn img { width: 24px; height: 24px; }
 
-/* チェックボックス */
 .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; }
 .options-row { display: flex; flex-wrap: wrap; gap: 1rem; }
 .time-section { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;}
@@ -197,24 +218,19 @@ input[type="checkbox"] + span { display: inline-block; width: 20px; height: 20px
 input[type="checkbox"]:checked + span { background-color: var(--primary-color); border-color: var(--primary-color); }
 input[type="checkbox"]:checked + span::after { content: '✓'; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; font-weight: bold; }
 
-/* カラーピッカー */
 .color-picker-ui { display: flex; align-items: center; gap: 1rem; }
 .color-picker-ui input[type="color"] { width: 48px; height: 48px; padding: 0; border: 4px solid var(--surface-color); border-radius: 50%; background: transparent; cursor: pointer; box-shadow: 0 0 0 1px var(--border-color); }
 .reset-btn { background-color: var(--surface-color); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: var(--text-secondary-color); }
-
 .text-color-row { margin-top: 1rem; display: flex; align-items: center; gap: 1rem; }
 
-/* フッター */
 .site-footer { display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 3rem 1rem; border-top: 1px solid var(--border-color); color: var(--text-secondary-color); font-size: 0.9rem; margin-top: 3rem; padding-bottom: 3rem; }
 .site-footer a { color: var(--text-secondary-color); text-decoration: none; transition: color 0.2s ease; }
 .footer-to-top { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
 
-/* モーダル */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
 .modal-overlay:not(.hidden) { opacity: 1; pointer-events: auto; }
 .modal-content { background: var(--bg-color); padding: 2rem; border-radius: 12px; max-width: 90vw; max-height: 80vh; overflow-y: auto; text-align: center; position: relative; }
 .close-button { position: absolute; top: 1rem; right: 1rem; font-size: 2rem; background: none; border: none; cursor: pointer; line-height: 1; }
 .modal-content img { max-width: 100%; height: auto; border-radius: 4px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
-/* 不要になった要素の非表示 */
 .mobile-action-bar, .bottom-sheet-header, .sticky-drawer { display: none !important; }
