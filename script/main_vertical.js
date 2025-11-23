@@ -1,9 +1,9 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Final Fix: Single Canvas + Alpha Disabled
+ * Final Fix: Single Canvas + CSS Restoration
  */
 
-// デバッグログ
+// デバッグ用
 const initDebugConsole = () => {
     const consoleDiv = document.createElement('div');
     consoleDiv.id = 'debug-console';
@@ -25,7 +25,7 @@ const initDebugConsole = () => {
         consoleDiv.appendChild(line);
     };
 };
-initDebugConsole();
+// initDebugConsole();
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -38,24 +38,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
         
+        // スマホなら内部解像度を0.5倍にしてメモリを節約
         const SCALE_FACTOR = isMobile ? 0.5 : 1.0;
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
 
-        window.logToScreen(`Mode: ${isMobile ? 'Mobile(0.5x)' : 'PC(1.0x)'}`);
-
+        // Canvas要素取得
         const canvas = document.getElementById('preview-canvas');
         if (!canvas) throw new Error("Canvas element 'preview-canvas' not found!");
         
-        // ★修正: alpha: false で不透明モードにする（メモリ節約・透過バグ回避）
+        // 不透明モードでコンテキスト作成
         const ctx = canvas.getContext('2d', { alpha: false });
 
+        // 物理サイズ適用
         canvas.width = CANVAS_WIDTH;
         canvas.height = CANVAS_HEIGHT;
 
+        // コンテキストのスケール設定
         ctx.scale(SCALE_FACTOR, SCALE_FACTOR);
 
-        // --- 2. DOM要素の取得 ---
+        // --- 2. DOM要素取得 ---
         const nameInput = document.getElementById('nameInput');
         const fontSelect = document.getElementById('fontSelect');
         const uploadImageInput = document.getElementById('uploadImage');
@@ -85,7 +87,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const stickyIconBgColorPicker = document.getElementById('stickyIconBgColorPicker');
         const stickyResetColorBtn = document.getElementById('stickyResetColorBtn');
 
-        // --- 3. 定数・変数定義 ---
         const NAME_COORDS = {
             _left:  { x: 211, y: 1073, width: 442, height: 70 },
             _right: { x: 197, y: 1073, width: 442, height: 70 }
@@ -137,7 +138,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         let userHasManuallyPickedColor = false;
         let userHasManuallyPickedTextColor = false;
 
-        // --- 4. ヘルパー関数群 ---
         const getAssetPath = (options) => {
             const isEn = currentLang === 'en';
             let langSuffix = '';
@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
                 img.onload = () => { imageCache[src] = img; resolve(img); };
-                img.onerror = () => { window.logToScreen(`Load err: ${src}`, 'ERROR'); resolve(null); };
+                img.onerror = () => { resolve(null); };
                 img.src = src;
             });
         };
@@ -220,19 +220,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             return state.iconBgColor;
         };
 
-        // --- 5. メイン描画処理 ---
         const redrawAll = async () => {
             updateState();
-            
             try {
-                // 全消去 & 黒背景 (確実にリセット)
                 ctx.save();
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.fillStyle = '#000000';
                 ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
                 ctx.restore();
 
-                // ユーザー画像
                 if (imageTransform.img) {
                     ctx.save();
                     ctx.translate(imageTransform.x, imageTransform.y);
@@ -241,10 +237,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ctx.restore();
                 }
 
-                // テンプレート
                 await drawTinted(getAssetPath({ category: 'base', filename: `${state.template}_cp` }));
 
-                // 各種パーツ
                 const config = templateConfig[state.template];
                 const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
 
@@ -315,13 +309,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
             } catch (e) {
-                window.logToScreen(`Redraw Err: ${e.message}`, 'ERROR');
+                console.error(e);
             }
         };
 
         const debouncedRedrawAll = createDebouncer(redrawAll, 300);
 
-        // --- 6. イベントリスナー ---
         templateSelect.addEventListener('change', async () => {
             updateState();
             if (!userHasManuallyPickedColor) {
@@ -399,8 +392,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!imageTransform.isDragging || !imageTransform.img) return;
             e.preventDefault();
             const loc = isTouch ? e.touches[0] : e;
-            const dx = (loc.clientX - imageTransform.lastX) * 2; 
-            const dy = (loc.clientY - imageTransform.lastY) * 2;
+            // マウス移動量はCanvasの表示サイズ基準なので、内部解像度(BASE_WIDTH)への変換が必要
+            // 簡易的に SCALE_FACTOR の逆数で補正
+            const dx = (loc.clientX - imageTransform.lastX) * (1 / SCALE_FACTOR); 
+            const dy = (loc.clientY - imageTransform.lastY) * (1 / SCALE_FACTOR);
             imageTransform.x += dx; imageTransform.y += dy; imageTransform.lastX = loc.clientX; imageTransform.lastY = loc.clientY; 
             redrawAll(); 
         };
@@ -440,7 +435,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     link.click(); 
                 }
             } catch (error) { 
-                window.logToScreen(`DL Error: ${error.message}`, 'ERROR');
+                console.error(error);
             } finally { 
                 isDownloading = false; 
                 downloadBtn.querySelector('span').textContent = translations[currentLang].generateDefault; 
@@ -484,9 +479,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 await redrawAll();
                 try { initMobileUI(); } catch(e) { console.warn("Mobile UI init failed", e); }
-                window.logToScreen('Init complete.', 'SUCCESS');
             } catch (e) {
-                window.logToScreen(`Init failed: ${e.message}`, 'ERROR');
+                console.error("Initialization error:", e);
                 loaderElement.style.display = 'none';
                 appElement.style.visibility = 'visible';
             }
@@ -494,6 +488,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         initialize();
 
     } catch (mainError) {
-        window.logToScreen(`Script Error: ${mainError.message}`, 'ERROR');
+        console.error(mainError);
     }
 });
