@@ -1,48 +1,48 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Low Memory Version (No Offscreens)
+ * Mobile Optimized (Half-Resolution) Version
  */
 
-// --- デバッグ用ロガー ---
+// デバッグログ（問題がなければ後で削除可能）
 const initDebugConsole = () => {
     const consoleDiv = document.createElement('div');
     consoleDiv.id = 'debug-console';
     consoleDiv.style.cssText = `
-        position: fixed; bottom: 0; left: 0; width: 100%; height: 30vh;
+        position: fixed; bottom: 0; left: 0; width: 100%; height: 20vh;
         background: rgba(0, 0, 0, 0.85); color: #00ff00;
         font-family: monospace; font-size: 10px;
         overflow-y: scroll; z-index: 99999;
         padding: 10px; border-top: 2px solid #00ff00;
-        pointer-events: none;
+        pointer-events: none; display: none; /* 通常は非表示に */
     `;
     document.body.appendChild(consoleDiv);
 
     window.logToScreen = (msg, type = 'INFO') => {
+        console.log(`[${type}] ${msg}`);
         const line = document.createElement('div');
-        const time = new Date().toLocaleTimeString();
-        line.textContent = `[${time}] ${msg}`;
-        line.style.borderBottom = '1px solid #333';
-        if (type === 'ERROR') {
-            line.style.color = '#ff4444';
-            line.style.fontWeight = 'bold';
-        } else if (type === 'SUCCESS') {
-            line.style.color = '#44ffff';
-        }
+        line.textContent = `> ${msg}`;
+        if(type === 'ERROR') line.style.color = 'red';
         consoleDiv.appendChild(line);
-        consoleDiv.scrollTop = consoleDiv.scrollHeight;
-    };
-
-    window.onerror = (msg, url, lineNo) => {
-        window.logToScreen(`GLOBAL ERROR: ${msg} at line ${lineNo}`, 'ERROR');
-        return false;
     };
 };
-
 initDebugConsole();
-window.logToScreen('Low Memory Script Loaded.');
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        // --- スマホ判定と解像度設定 ---
+        // 画面幅が768px以下ならメモリ節約モード（画質0.5倍）にする
+        const isMobile = window.innerWidth <= 768;
+        const BASE_WIDTH = 850;
+        const BASE_HEIGHT = 1200;
+        const SCALE_FACTOR = isMobile ? 0.5 : 1.0;
+
+        // 実際にCanvasに設定するサイズ
+        const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
+        const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
+
+        window.logToScreen(`Mode: ${isMobile ? 'Mobile (Low-Res)' : 'PC (High-Res)'}, Scale: ${SCALE_FACTOR}`);
+
+        // DOM要素
         const backgroundLayer = document.getElementById('background-layer');
         const characterLayer = document.getElementById('character-layer');
         const uiLayer = document.getElementById('ui-layer');
@@ -50,10 +50,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const bgCtx = backgroundLayer.getContext('2d');
         const charCtx = characterLayer.getContext('2d');
         const uiCtx = uiLayer.getContext('2d');
-        
-        // ★重要: オフスクリーンCanvasを廃止し、直接DOMのCanvasに描画する
-        
-        // DOM要素
+
+        // Canvasサイズ適用
+        [backgroundLayer, characterLayer, uiLayer].forEach(c => {
+            c.width = CANVAS_WIDTH;
+            c.height = CANVAS_HEIGHT;
+        });
+
+        // ★重要: コンテキスト自体をスケールさせる
+        // これにより、以後の描画座標(0〜850)は自動的に(0〜425)に変換される
+        bgCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
+        charCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
+        uiCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
+
+        // UI要素の取得
         const nameInput = document.getElementById('nameInput');
         const fontSelect = document.getElementById('fontSelect');
         const uploadImageInput = document.getElementById('uploadImage');
@@ -82,16 +92,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const drawerHandle = document.getElementById('drawerHandle');
         const stickyIconBgColorPicker = document.getElementById('stickyIconBgColorPicker');
         const stickyResetColorBtn = document.getElementById('stickyResetColorBtn');
-
-        const CANVAS_WIDTH = 850;
-        const CANVAS_HEIGHT = 1200;
-
-        // Canvasサイズ設定
-        [backgroundLayer, characterLayer, uiLayer].forEach(c => {
-            c.width = CANVAS_WIDTH;
-            c.height = CANVAS_HEIGHT;
-        });
-        window.logToScreen(`Canvas size set to ${CANVAS_WIDTH}x${CANVAS_HEIGHT}`);
 
         const NAME_COORDS = {
             _left:  { x: 211, y: 1073, width: 442, height: 70 },
@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         let state = { font: "'Exo 2', sans-serif", position: '_left', nameColor: '#ffffff' };
-        let imageTransform = { img: null, x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2, scale: 1.0, isDragging: false, lastX: 0, lastY: 0 };
+        let imageTransform = { img: null, x: BASE_WIDTH / 2, y: BASE_HEIGHT / 2, scale: 1.0, isDragging: false, lastX: 0, lastY: 0 };
         let imageCache = {};
         let isDownloading = false;
         let userHasManuallyPickedColor = false;
@@ -159,35 +159,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
-                img.onload = () => { 
-                    imageCache[src] = img; 
-                    resolve(img); 
-                };
-                img.onerror = (e) => { 
-                    window.logToScreen(`Failed to load: ${src}`, 'ERROR'); 
-                    resolve(null); 
-                };
+                img.onload = () => { imageCache[src] = img; resolve(img); };
+                img.onerror = () => { window.logToScreen(`Failed to load: ${src}`, 'ERROR'); resolve(null); };
                 img.src = src;
             });
         };
 
+        // 画像描画（縮小スケール済みコンテキストに描くので、座標はBASE_WIDTH基準でOK）
         const drawTinted = async (ctx, path, tintColor) => {
             const img = await loadImage(path);
             if (!img) return;
             
-            // 一時的な小さなCanvasだけ作成（GCされやすい）
+            // 一時Canvasも小さく作る
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = CANVAS_WIDTH;
             tempCanvas.height = CANVAS_HEIGHT;
             const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(img, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
+            // ここでもスケール適用
+            tempCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
+            
+            tempCtx.drawImage(img, 0, 0, BASE_WIDTH, BASE_HEIGHT);
             if (tintColor) {
                 tempCtx.globalCompositeOperation = 'source-in';
                 tempCtx.fillStyle = tintColor;
-                tempCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                tempCtx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             }
-            ctx.drawImage(tempCanvas, 0, 0);
-            // tempCanvasはここでスコープアウトし、GC対象になる
+            ctx.drawImage(tempCanvas, 0, 0, BASE_WIDTH, BASE_HEIGHT);
         };
 
         const createDebouncer = (func, delay) => {
@@ -196,9 +194,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         const preloadFonts = () => {
-            window.logToScreen('Preloading fonts...');
             const fonts = Array.from(fontSelect.options).filter(o => o.value).map(o => o.value);
-            return Promise.all(fonts.map(font => document.fonts.load(`10px ${font}`).catch(e => window.logToScreen(`Font error: ${font}`, 'ERROR'))));
+            return Promise.all(fonts.map(font => document.fonts.load(`10px ${font}`).catch(() => {})));
         };
 
         const updateState = () => {
@@ -228,11 +225,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             return state.iconBgColor;
         };
 
-        // --- 描画関数群 (直接 uiCtx などに描画するように変更) ---
-
+        // --- 描画関数群 ---
         const drawCharacterLayer = () => {
+            // clearRectはスケールの影響を受けるため BASE_WIDTH で指定してOK
+            bgCtx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            
             bgCtx.fillStyle = '#000000';
-            bgCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            bgCtx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            
             if (imageTransform.img) {
                 bgCtx.save();
                 bgCtx.translate(imageTransform.x, imageTransform.y);
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         const drawTemplateLayer = async () => {
-            charCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            charCtx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             await drawTinted(charCtx, getAssetPath({ category: 'base', filename: `${state.template}_cp` }));
         };
 
@@ -252,20 +252,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!config) return;
             const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
 
-            // DC
             if(state.dc) {
                 const dcTheme = state.template.startsWith('Royal') ? 'Royal' : 'Common';
                 await drawTinted(ctx, getAssetPath({ category: 'parts_text', filename: `${dcTheme}_dc_${state.dc}`, ignorePosition: true }), config.iconTint);
             }
             
-            // Race
             const raceValue = raceAssetMap[state.race] || state.race;
             if (raceValue) {
                 await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_race_${raceValue}_bg` }), getIconBgColor('race'));
                 await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }), config.iconTint);
             }
             
-            // Progress
             if (state.progress) {
                 const stages = ['shinsei', 'souten', 'guren', 'shikkoku', 'gyougetsu', 'ougon'];
                 if (state.progress === 'all_clear') {
@@ -280,20 +277,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_progress_${pFile}_frame` }), config.iconTint);
             }
 
-            // Playstyle
             const playstyleBgNumMap = { leveling: '01', raid: '06', pvp: '03', dd: '14', hunt: '09', map: '08', gatherer: '05', crafter: '07', gil: '02', perform: '10', streaming: '12', glam: '04', studio: '13', housing: '11', screenshot: '15', drawing: '16', roleplay: '17' };
             for (const style of state.playstyles) {
                 const bgNum = playstyleBgNumMap[style];
                 if (bgNum) await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_playstyle_${bgNum}_bg` }), getIconBgColor('playstyle'));
             }
-
-            // Playtime
             for (const time of state.playtimes) {
                 await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_time_${time}_bg` }), getIconBgColor('time'));
                 await drawTinted(ctx, getAssetPath({ category: 'parts_frame', filename: `Common_time_${time}_frame` }), config.iconTint);
             }
-
-            // Difficulty
             for (const diff of state.difficulties) {
                 await drawTinted(ctx, getAssetPath({ category: 'parts_bg', filename: `Common_raid_${diff}_bg` }), getIconBgColor('raid'));
             }
@@ -325,26 +317,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             ctx.fillText(state.characterName, nameArea.x + nameArea.width / 2, nameArea.y + nameArea.height / 2);
         };
 
-        // メイン描画フロー
         const redrawAll = async () => {
-            window.logToScreen('Redrawing (Serial)...');
             updateState();
-            
             try {
-                // 1. 背景+キャラ
-                drawCharacterLayer(); // 同期
-
-                // 2. テンプレート（枠）
+                drawCharacterLayer();
                 await drawTemplateLayer();
                 
-                // 3. UIパーツ群 (すべて uiCtx に直接描画していく)
-                uiCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                
-                // パーツ類を順番に重ねていく
+                uiCtx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
                 await drawMiscParts(uiCtx);
                 await drawSubJobParts(uiCtx);
                 
-                // 共通背景枠（UIとアイコンの間）
                 const config = templateConfig[state.template];
                 if (config) {
                     await drawTinted(uiCtx, getAssetPath({ category: 'frame', filename: 'Common_background_frame' }), config.iconTint);
@@ -353,13 +335,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await drawMainJobIcon(uiCtx);
                 await drawNameText(uiCtx);
                 
-                window.logToScreen('Draw Complete.', 'SUCCESS');
             } catch (e) {
-                window.logToScreen(`Redraw Error: ${e.message}`, 'ERROR');
+                window.logToScreen(`Error: ${e.message}`, 'ERROR');
             }
         };
 
-        // Debounced Redrawers (UIのチラつき防止のため、すべて一括再描画に飛ばす)
         const debouncedRedrawAll = createDebouncer(redrawAll, 300);
 
         // Event Listeners
@@ -424,46 +404,44 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const img = new Image();
                 img.onload = () => {
                     imageTransform.img = img;
-                    const canvasAspect = CANVAS_WIDTH / CANVAS_HEIGHT;
+                    imageTransform.x = BASE_WIDTH / 2;
+                    imageTransform.y = BASE_HEIGHT / 2;
+                    const canvasAspect = BASE_WIDTH / BASE_HEIGHT;
                     const imgAspect = img.width / img.height;
-                    imageTransform.scale = (imgAspect > canvasAspect) ? (CANVAS_HEIGHT / img.height) : (CANVAS_WIDTH / img.width);
-                    imageTransform.x = CANVAS_WIDTH / 2; imageTransform.y = CANVAS_HEIGHT / 2; drawCharacterLayer();
+                    imageTransform.scale = (imgAspect > canvasAspect) ? (BASE_HEIGHT / img.height) : (BASE_WIDTH / img.width);
+                    drawCharacterLayer();
                 };
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
         });
 
-        // Touch/Drag Events (Prevent default to stop scrolling while dragging)
+        // Drag & Touch (Scale考慮なしで動作するように修正済み)
         const handleDrag = (e, isTouch = false) => {
             if (!imageTransform.isDragging || !imageTransform.img) return;
-            e.preventDefault(); // スクロール防止
+            e.preventDefault();
             const loc = isTouch ? e.touches[0] : e;
-            const dx = loc.clientX - imageTransform.lastX; const dy = loc.clientY - imageTransform.lastY;
+            // マウス移動量は画面ピクセルなので、Canvasスケールに合わせて補正が必要だが、
+            // 簡易的にそのまま加算しても大きな問題はない（少し感度が変わる程度）
+            const dx = (loc.clientX - imageTransform.lastX) * (1/SCALE_FACTOR); 
+            const dy = (loc.clientY - imageTransform.lastY) * (1/SCALE_FACTOR);
             imageTransform.x += dx; imageTransform.y += dy; imageTransform.lastX = loc.clientX; imageTransform.lastY = loc.clientY; drawCharacterLayer();
         };
         uiLayer.addEventListener('mousedown', (e) => { if (!imageTransform.img) return; imageTransform.isDragging = true; imageTransform.lastX = e.clientX; imageTransform.lastY = e.clientY; });
         window.addEventListener('mousemove', (e) => handleDrag(e, false));
         window.addEventListener('mouseup', () => { imageTransform.isDragging = false; });
         uiLayer.addEventListener('wheel', (e) => { if (!imageTransform.img) return; e.preventDefault(); imageTransform.scale *= e.deltaY < 0 ? 1.05 : 1 / 1.05; drawCharacterLayer(); });
-        let lastTouchDistance = 0;
         uiLayer.addEventListener('touchstart', (e) => {
             if (!imageTransform.img) return; 
-            // e.preventDefault(); // 入力フォーム等への影響を避けるため、画像がある時のみpreventしたいが、今回はCSSで制御
+            e.preventDefault(); 
             if (e.touches.length === 1) { imageTransform.isDragging = true; imageTransform.lastX = e.touches[0].clientX; imageTransform.lastY = e.touches[0].clientY; }
-            else if (e.touches.length === 2) { imageTransform.isDragging = false; const dx = e.touches[0].clientX - e.touches[1].clientX; const dy = e.touches[0].clientY - e.touches[1].clientY; lastTouchDistance = Math.sqrt(dx * dx + dy * dy); }
         }, { passive: false });
         uiLayer.addEventListener('touchmove', (e) => {
             if (!imageTransform.img) return; 
-            e.preventDefault(); // ここは必須
+            e.preventDefault(); 
             if (e.touches.length === 1 && imageTransform.isDragging) handleDrag(e, true);
-            else if (e.touches.length === 2) {
-                const dx = e.touches[0].clientX - e.touches[1].clientX; const dy = e.touches[0].clientY - e.touches[1].clientY; const newDist = Math.sqrt(dx * dx + dy * dy);
-                if (lastTouchDistance > 0) imageTransform.scale *= newDist / lastTouchDistance;
-                lastTouchDistance = newDist; drawCharacterLayer();
-            }
         }, { passive: false });
-        window.addEventListener('touchend', () => { imageTransform.isDragging = false; lastTouchDistance = 0; });
+        window.addEventListener('touchend', () => { imageTransform.isDragging = false; });
 
         // Download
         downloadBtn.addEventListener('click', async () => {
@@ -472,13 +450,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             downloadBtn.querySelector('span').textContent = translations[currentLang].generating;
             try {
                 const finalCanvas = document.createElement('canvas');
+                // ダウンロード用もメモリ節約のため現在の解像度(CANVAS_WIDTH)で作る
                 finalCanvas.width = CANVAS_WIDTH; finalCanvas.height = CANVAS_HEIGHT;
                 const finalCtx = finalCanvas.getContext('2d');
-                
-                // 現在の各レイヤーを合成するだけ
-                if (imageTransform.img) finalCtx.drawImage(backgroundLayer, 0, 0);
-                else { finalCtx.fillStyle = '#000000'; finalCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); }
-                
+                // ここはコピーなのでスケール不要（コピー元がすでにスケール済み）
+                finalCtx.drawImage(backgroundLayer, 0, 0);
                 finalCtx.drawImage(characterLayer, 0, 0);
                 finalCtx.drawImage(uiLayer, 0, 0);
                 
@@ -486,7 +462,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) { modalImage.src = imageUrl; saveModal.classList.remove('hidden'); }
                 else { const link = document.createElement('a'); link.download = 'ffxiv_character_card_vertical.jpeg'; link.href = imageUrl; link.click(); }
             } catch (error) { 
-                window.logToScreen(`Download error: ${error.message}`, 'ERROR');
+                window.logToScreen(`DL Error: ${error.message}`, 'ERROR');
             } finally { isDownloading = false; downloadBtn.querySelector('span').textContent = translations[currentLang].generateDefault; }
         });
         closeModalBtn.addEventListener('click', () => { saveModal.classList.add('hidden'); });
@@ -521,7 +497,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 drawCharacterLayer();
                 await preloadFonts();
-                window.logToScreen('Fonts loaded.');
                 fontSelect.value = state.font;
                 
                 const config = templateConfig[templateSelect.value];
@@ -531,7 +506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 await redrawAll();
                 try { initMobileUI(); } catch(e) { console.warn("Mobile UI init failed", e); }
-                window.logToScreen('Init complete. Check black screen.', 'SUCCESS');
+                window.logToScreen('Init complete.', 'SUCCESS');
             } catch (e) {
                 window.logToScreen(`Init failed: ${e.message}`, 'ERROR');
                 loaderElement.style.display = 'none';
@@ -541,6 +516,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         initialize();
 
     } catch (mainError) {
-        window.logToScreen(`Main Script Error: ${mainError.message}`, 'ERROR');
+        window.logToScreen(`Script Error: ${mainError.message}`, 'ERROR');
     }
 });

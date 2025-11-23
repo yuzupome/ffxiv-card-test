@@ -57,21 +57,22 @@ body.generator-page #app { visibility: hidden; }
 /* Canvas レイヤー */
 .canvas-container { width: 100%; margin: 0 auto; }
 
-/* Canvasラッパー: パディングハックで高さを物理的に強制確保 */
+/* Canvasラッパー: デフォルト（スマホ・基本） */
 .canvas-wrapper {
     position: relative;
     width: 100%;
-    max-width: 425px !important; /* PC幅 */
+    /* スマホでは幅いっぱいにしつつ、高さをパディングで確保 */
+    max-width: 425px; 
     
-    /* アスペクト比固定 (1200 / 850 = 1.41176...) */
-    height: 0 !important;
-    padding-top: 141.18% !important;
+    /* フォールバック用の高さ確保（スマホのホワイトアウト対策） */
+    height: 0;
+    padding-top: 141.18%; /* 1200 / 850 */
     
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid var(--border-color);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    background-color: #000000 !important; /* 背景を黒に強制 */
+    background-color: #000000 !important;
     margin: 0 auto;
 }
 
@@ -86,7 +87,6 @@ body.generator-page #app { visibility: hidden; }
     visibility: visible !important;
 }
 
-/* 背景レイヤーの背景色も黒に */
 #background-layer { background-color: #000000 !important; }
 #ui-layer { cursor: grab; }
 #ui-layer:active { cursor: grabbing; }
@@ -106,16 +106,10 @@ body.generator-page #app { visibility: hidden; }
     transition: opacity 0.3s ease-in-out;
     font-family: 'DotGothic16', sans-serif;
 }
-.mini-loader.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-.mini-loader .spinner-icon {
-    width: 48px;
-    height: 48px;
-}
+.mini-loader.hidden { opacity: 0; pointer-events: none; }
+.mini-loader .spinner-icon { width: 48px; height: 48px; }
 
-/* セクションなど共通スタイル */
+/* セクション共通 */
 .control-section { padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
 #controls > div:first-of-type { border-top: none; padding-top: 0; }
 .section-title { font-family: 'Orbitron', sans-serif; font-size: 1rem; font-weight: 600; margin: 0 0 1rem 0; color: var(--text-color); }
@@ -124,30 +118,12 @@ body.generator-page #app { visibility: hidden; }
 /* フォーム */
 #top-controls { display: flex; flex-direction: column; gap: 1rem; }
 input[type="text"], select {
-    width: 100%;
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    padding: 0.75rem;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: all 0.2s ease;
-    color: var(--text-color);
+    width: 100%; background-color: var(--bg-color); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 8px; font-size: 1rem; transition: all 0.2s ease; color: var(--text-color);
 }
 input[type="text"]:focus, select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.2); }
 select:invalid { color: var(--text-secondary-color); }
 .file-upload-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    width: 100%;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    padding: 0.75rem;
-    border-radius: 8px;
-    color: var(--text-secondary-color);
-    cursor: pointer;
-    transition: all 0.2s ease;
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 8px; color: var(--text-secondary-color); cursor: pointer; transition: all 0.2s ease;
 }
 .file-upload-label:hover { border-color: var(--primary-color); color: var(--primary-color); }
 .file-upload-label svg { stroke: currentColor; }
@@ -159,45 +135,16 @@ select:invalid { color: var(--text-secondary-color); }
 
 .button-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .button-grid button {
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary-color);
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
+    background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-secondary-color); padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s ease;
 }
 .button-grid button:hover { border-color: var(--primary-hover-color); color: var(--primary-hover-color); }
 .button-grid button.active { background-color: var(--primary-color); border-color: var(--primary-color); color: white; }
 
 .generate-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    width: 100%;
-    background-color: var(--bg-color);
-    color: var(--text-secondary-color);
-    font-size: 1.1rem;
-    font-weight: 600;
-    border: 1px solid var(--border-color);
-    padding: 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    margin-top: 1.5rem;
-    transition: all 0.2s ease;
+    display: flex; align-items: center; justify-content: center; gap: 0.75rem; width: 100%; background-color: var(--bg-color); color: var(--text-secondary-color); font-size: 1.1rem; font-weight: 600; border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; cursor: pointer; margin-top: 1.5rem; transition: all 0.2s ease;
 }
-.generate-btn:hover {
-    background-color: var(--surface-color);
-    border-color: var(--primary-hover-color);
-    color: var(--primary-hover-color);
-}
-.generate-btn img {
-    width: 32px;
-    height: 32px;
-    transition: transform 0.3s ease;
-}
+.generate-btn:hover { background-color: var(--surface-color); border-color: var(--primary-hover-color); color: var(--primary-hover-color); }
+.generate-btn img { width: 32px; height: 32px; transition: transform 0.3s ease; }
 .generate-btn:hover img { transform: rotate(-15deg) scale(1.1); }
 
 .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -208,13 +155,7 @@ select:invalid { color: var(--text-secondary-color); }
 .checkbox-group label, .checkbox-group-single label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.95rem; }
 input[type="checkbox"] { display: none; }
 input[type="checkbox"] + span {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--border-color);
-    border-radius: 5px;
-    transition: all 0.2s ease;
-    position: relative;
+    display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border-color); border-radius: 5px; transition: all 0.2s ease; position: relative;
 }
 input[type="checkbox"]:checked + span { background-color: var(--primary-color); border-color: var(--primary-color); }
 input[type="checkbox"]:checked + span::after { content: '✓'; color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; font-weight: bold; }
@@ -223,10 +164,7 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
 #subjobSection h3 { margin: 0 0 1rem; }
 .grid-break { flex-basis: 100%; height: 0; }
 
-.site-footer {
-    display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 2rem;
-    border-top: 1px solid var(--border-color); color: var(--text-secondary-color); font-size: 0.9rem;
-}
+.site-footer { display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 2rem; border-top: 1px solid var(--border-color); color: var(--text-secondary-color); font-size: 0.9rem; }
 .site-footer a { color: var(--text-secondary-color); text-decoration: none; transition: color 0.2s ease; }
 .site-footer a:hover { color: var(--primary-hover-color); }
 .site-footer svg { width: 18px; height: 18px; }
@@ -238,11 +176,11 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
 .modal-content h3 { margin-top: 0; }
 .modal-content img { max-width: 100%; height: auto; border-radius: 8px; margin-top: 1rem; }
 
-/* レスポンシブ */
+/* --- PCレイアウト修正 (高さ制限) --- */
 @media (min-width: 769px) {
   body { padding-bottom: 0; }
   .content-wrapper { display: flex; flex-direction: row; max-width: 1280px; }
-  /* PCのみsticky有効 */
+  
   .preview-panel {
     flex: 1;
     min-width: 460px;
@@ -250,6 +188,18 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
     position: sticky;
     top: 85px;
   }
+
+  /* ★修正: PCでは高さを画面の85%に制限し、それに合わせて幅を自動調整 */
+  .canvas-wrapper {
+    padding-top: 0 !important; /* スマホ用ハックを解除 */
+    height: 85vh !important;   /* 高さを画面の85%に */
+    width: auto !important;    /* 幅は自動 */
+    aspect-ratio: 850 / 1200;  /* アスペクト比で幅を決定 */
+    max-width: none !important;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   .controls-panel {
     flex: 1;
     min-width: 360px;
@@ -262,7 +212,7 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
   .bottom-sheet-header { display: none !important; }
 }
 
-/* 📱 スマホ専用スタイル */
+/* スマホ専用スタイル */
 @media (max-width: 768px) {
     .site-header { padding: 1rem; }
     .content-wrapper { padding: 2rem 1rem; }
@@ -270,7 +220,7 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
     .site-footer { padding: 1.5rem 1rem; padding-bottom: 100px; }
     .sticky-drawer { display: none !important; }
     
-    /* スマホではstickyを解除し、描画バグを回避 */
+    /* スマホではsticky解除 */
     .preview-panel { position: relative !important; top: 0 !important; }
 
     .controls-panel {
@@ -288,30 +238,15 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
     .controls-panel.is-open { transform: translateY(0); }
 
     .bottom-sheet-header {
-        position: sticky; top: 0;
-        background-color: var(--bg-color);
-        padding: 1rem 0;
-        border-bottom: 1px solid var(--border-color);
-        margin-bottom: 1rem;
-        display: flex; justify-content: center; align-items: center;
-        z-index: 10;
+        position: sticky; top: 0; background-color: var(--bg-color); padding: 1rem 0; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; display: flex; justify-content: center; align-items: center; z-index: 10;
     }
     .sheet-handle-bar { width: 40px; height: 5px; background-color: var(--border-color); border-radius: 10px; }
 
     .mobile-action-bar {
-        position: fixed; bottom: 0; left: 0; right: 0;
-        background-color: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-top: 1px solid var(--border-color);
-        padding: 1rem;
-        display: flex; gap: 1rem;
-        z-index: 2500;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        position: fixed; bottom: 0; left: 0; right: 0; background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); padding: 1rem; display: flex; gap: 1rem; z-index: 2500; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
     }
     .mobile-action-btn {
-        flex: 1; padding: 0.8rem; border-radius: 8px;
-        font-weight: 600; font-size: 1rem; border: none;
-        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        flex: 1; padding: 0.8rem; border-radius: 8px; font-weight: 600; font-size: 1rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
     }
     .btn-secondary { background-color: var(--surface-color); color: var(--text-color); border: 1px solid var(--border-color); }
     .btn-primary { background-color: var(--primary-color); color: white; }
@@ -319,37 +254,19 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
 }
 
 .color-picker-ui { display: flex; align-items: center; gap: 0.75rem; }
-.color-picker-ui input[type="color"] {
-    -webkit-appearance: none; -moz-appearance: none; appearance: none;
-    width: 48px; height: 48px; padding: 0; border: none; border-radius: 50%;
-    cursor: pointer; background-color: transparent; border: 2px solid var(--border-color);
-}
+.color-picker-ui input[type="color"] { -webkit-appearance: none; -moz-appearance: none; appearance: none; width: 48px; height: 48px; padding: 0; border: none; border-radius: 50%; cursor: pointer; background-color: transparent; border: 2px solid var(--border-color); }
 .color-picker-ui input[type="color"]::-webkit-color-swatch { border-radius: 50%; border: none; }
 .color-picker-ui input[type="color"]::-moz-color-swatch { border-radius: 50%; border: none; }
 .text-color-row { margin-top: 1rem; display: flex; align-items: center; gap: 0.75rem; }
 .text-color-label { font-family: 'Orbitron', sans-serif; font-weight: 600; font-size: 0.9rem; color: var(--text-color); }
 
-.reset-btn {
-    background-color: var(--surface-color); border: 1px solid var(--border-color);
-    color: var(--text-secondary-color); padding: 0.5rem 1rem; border-radius: 8px;
-    cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease;
-}
+.reset-btn { background-color: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-secondary-color); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; }
 .reset-btn:hover { border-color: var(--primary-hover-color); color: var(--primary-hover-color); }
 
-.sticky-drawer {
-    position: fixed; top: 520px; right: 0; transform: translateY(0);
-    z-index: 1500; display: flex; align-items: center; transition: transform 0.3s ease-in-out;
-}
+.sticky-drawer { position: fixed; top: 520px; right: 0; transform: translateY(0); z-index: 1500; display: flex; align-items: center; transition: transform 0.3s ease-in-out; }
 .sticky-drawer.is-closed { transform: translateX(calc(100% - 48px)); }
-.drawer-handle {
-    width: 48px; height: 64px; background-color: var(--surface-color); border: 1px solid var(--border-color); border-right: none;
-    border-radius: 12px 0 0 12px; box-shadow: -2px 2px 8px rgba(0,0,0,0.1);
-    display: flex; justify-content: center; align-items: center; cursor: pointer; color: #f2b26b; 
-}
-.drawer-panel {
-    padding: 1rem; background-color: var(--surface-color); border: 1px solid var(--border-color); border-right: none;
-    border-radius: 12px 0 0 12px; box-shadow: -2px 2px 8px rgba(0,0,0,0.1);
-}
+.drawer-handle { width: 48px; height: 64px; background-color: var(--surface-color); border: 1px solid var(--border-color); border-right: none; border-radius: 12px 0 0 12px; box-shadow: -2px 2px 8px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; cursor: pointer; color: #f2b26b; }
+.drawer-panel { padding: 1rem; background-color: var(--surface-color); border: 1px solid var(--border-color); border-right: none; border-radius: 12px 0 0 12px; box-shadow: -2px 2px 8px rgba(0,0,0,0.1); }
 .sticky-picker-title { font-family: 'Orbitron', sans-serif; font-size: 0.9rem; font-weight: 600; margin: 0 0 0.75rem 0; color: var(--text-color); }
 
 .design-credit { color: var(--text-secondary-color); }
@@ -360,9 +277,6 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
 .how-to-use-title { font-family: 'Orbitron', sans-serif; text-align: center; font-size: 1.2rem; font-weight: 600; color: var(--text-color); margin-top: 0; margin-bottom: 0.5rem; }
 .how-to-use-gif { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border-color); display: block; }
 
-.footer-to-top {
-    display: flex; align-items: center; gap: 0.2em; margin-left: auto; padding: 0 1.5rem; align-self: stretch;
-    background-color: var(--surface-color); border-left: 1px solid var(--border-color); color: var(--text-color); font-weight: 500; text-decoration: none; transition: background-color 0.2s ease;
-}
+.footer-to-top { display: flex; align-items: center; gap: 0.2em; margin-left: auto; padding: 0 1.5rem; align-self: stretch; background-color: var(--surface-color); border-left: 1px solid var(--border-color); color: var(--text-color); font-weight: 500; text-decoration: none; transition: background-color 0.2s ease; }
 .footer-to-top:hover { background-color: var(--border-color); }
 .footer-to-top svg { width: 20px; height: 20px; }
