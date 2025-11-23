@@ -18,6 +18,7 @@ body {
   margin: 0;
   line-height: 1.6;
   overflow-x: hidden;
+  padding-bottom: 80px;
 }
 
 #app { display: flex; flex-direction: column; min-height: 100vh; }
@@ -54,6 +55,8 @@ body.generator-page #app { visibility: hidden; }
     width: 100%;
     position: relative;
     z-index: 100; /* 入力欄より手前に来るように */
+    /* 監視用のマーカーとして機能させるため、top: -1pxを設定 */
+    top: -1px; 
 }
 
 /* Canvasコンテナ */
@@ -62,15 +65,16 @@ body.generator-page #app { visibility: hidden; }
     margin: 0 auto;
     display: flex;
     justify-content: center;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* アニメーション */
 }
 
-/* Canvasラッパー (スマホ用デフォルト) */
+/* Canvasラッパー (デフォルト: 大きく表示) */
 .canvas-wrapper {
     position: relative;
     width: 100%;
     max-width: 100%;
     
-    /* アスペクト比確保 */
+    /* アスペクト比確保 (大きく表示) */
     height: 0;
     padding-top: 141.18%; /* 1200 / 850 */
     
@@ -79,7 +83,7 @@ body.generator-page #app { visibility: hidden; }
     border: 1px solid var(--border-color);
     background-color: #000000 !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: all 0.3s ease; /* スムーズな変形用 */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* アニメーション */
 }
 
 .canvas-wrapper canvas {
@@ -90,7 +94,7 @@ body.generator-page #app { visibility: hidden; }
     object-fit: contain;
 }
 
-/* コントロールパネル (スマホ: そのまま下に表示) */
+/* コントロールパネル */
 .controls-panel {
     width: 100%;
     background-color: var(--bg-color);
@@ -140,42 +144,37 @@ body.generator-page #app { visibility: hidden; }
 }
 
 /* =========================================
-   ★追加: スマホ用 ミニ・スティッキー・プレビュー (768px以下)
+   ★スマホ用 スマート・スティッキー (768px以下)
    ========================================= */
 @media (max-width: 768px) {
-    .preview-panel {
-        /* 上部に張り付く設定 */
+    
+    /* 追従モード (.is-stuck) の時だけ適用されるスタイル */
+    body.is-stuck .preview-panel {
         position: sticky;
-        top: 10px; /* 上端から少し空ける */
-        
-        /* 縮小表示のための設定 */
-        /* コンテンツ幅は保ちつつ、高さを制限してスクロールさせるわけではなく、
-           全体を縮小して表示させるアプローチ */
-        display: flex;
-        justify-content: center;
-        pointer-events: none; /* 張り付いている間は裏の要素を触れるように...したいがCanvas操作もあるので今回はON */
-        pointer-events: auto;
+        top: 10px; /* 上端から10pxの位置に固定 */
+        pointer-events: none; /* 裏の要素を触れるように */
+    }
+    
+    body.is-stuck .preview-panel .canvas-container {
+        pointer-events: auto; /* Canvas操作は許可 */
     }
 
-    /* スティッキー時のCanvasラッパー 
-       高さを画面の30%程度に抑え、それに合わせて幅も自動縮小させる
-    */
-    .canvas-wrapper {
-        padding-top: 0 !important; /* paddingハック解除 */
-        height: 30vh !important;   /* 高さを画面の30%に制限 */
-        width: auto !important;    /* 幅は自動 */
-        aspect-ratio: 850 / 1200;  /* 比率維持 */
-        
+    /* 固定時はサイズを縮小 */
+    body.is-stuck .canvas-wrapper {
+        padding-top: 0 !important;
+        height: 25vh !important;   /* 高さを画面の25%に */
+        width: auto !important;    /* 幅は自動縮小 */
+        aspect-ratio: 850 / 1200;  
         margin: 0 auto;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3); /* 浮いている感を出す影 */
-        border: 2px solid var(--primary-color); /* 枠線で目立たせる */
+        
+        /* 浮いている感を出す */
+        box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        border: 2px solid var(--primary-color);
+        border-radius: 8px;
     }
-
-    /* 補足: これで「常に小さいプレビュー」になります。
-      もし「最初は大きく、スクロールしたら小さく」したい場合はJSが必要ですが、
-      「常に小さい」ほうが入力中の確認には便利です（最初から全体が見えるので）。
-      画像をタップしたら拡大するモーダルなどを後でつけても良いでしょう。
-    */
+    
+    /* 固定されたとき、下の入力欄が隠れないように余白を確保するためのダミー要素 */
+    /* JSで制御するため、ここでは定義のみ */
 }
 
 

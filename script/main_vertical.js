@@ -1,6 +1,6 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Production Ready (No Debug Mode)
+ * Smart Sticky Preview & Clean Error Handling
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -14,25 +14,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
         
-        // スマホなら内部解像度を0.5倍にしてメモリを節約
-        // ※もし画質が気になる場合は 1.0 に戻しても今の構成なら動く可能性が高いです
-        const SCALE_FACTOR = isMobile ? 0.5 : 1.0;
+        // 画質設定 (画質優先)
+        const SCALE_FACTOR = 1.0; 
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
 
-        // Canvas取得
         const canvas = document.getElementById('preview-canvas');
         if (!canvas) throw new Error("Canvas element 'preview-canvas' not found!");
         
-        // 不透明モードでコンテキスト作成（メモリ節約）
         const ctx = canvas.getContext('2d', { alpha: false });
-
-        // サイズ適用
         canvas.width = CANVAS_WIDTH;
         canvas.height = CANVAS_HEIGHT;
-
-        // スケール設定
         ctx.scale(SCALE_FACTOR, SCALE_FACTOR);
+
+        // --- ★追加: スマホ用スクロール追従ロジック ---
+        if (isMobile) {
+            const previewPanel = document.querySelector('.preview-panel');
+            const sentinel = document.createElement('div');
+            sentinel.style.position = 'absolute';
+            sentinel.style.top = '0';
+            sentinel.style.height = '1px';
+            sentinel.style.width = '100%';
+            // 監視用要素をbodyの先頭に仕込む
+            document.body.insertBefore(sentinel, document.body.firstChild);
+
+            const observer = new IntersectionObserver((entries) => {
+                // sentinelが画面外に出たら（＝スクロールしたら）クラスを付与
+                if (!entries[0].isIntersecting) {
+                    document.body.classList.add('is-stuck');
+                } else {
+                    document.body.classList.remove('is-stuck');
+                }
+            }, { threshold: 0 });
+
+            observer.observe(sentinel);
+        }
 
         // --- 2. DOM要素取得 ---
         const nameInput = document.getElementById('nameInput');
