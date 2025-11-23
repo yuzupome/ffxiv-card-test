@@ -59,17 +59,14 @@ body.generator-page #app { visibility: hidden; }
 /* Canvas レイヤー */
 .canvas-container { width: 100%; margin: 0 auto; }
 
-/* ★修正: 高さ崩れ対策済みラッパー */
+/* ★修正: PC/Mobile両対応のCanvasラッパー */
 .canvas-wrapper {
     position: relative;
     width: 100%;
     
-    /* モダンブラウザ用: アスペクト比指定 */
+    /* シンプルにアスペクト比のみを指定 */
     aspect-ratio: 850 / 1200;
-
-    /* ★修正: 高さ消失防止ハック (1200 / 850 * 100 = 141.176...) */
-    height: 0;
-    padding-top: 141.18%;
+    height: auto;
 
     border-radius: 12px;
     overflow: hidden;
@@ -78,15 +75,6 @@ body.generator-page #app { visibility: hidden; }
     background-color: #000000 !important; /* 強制黒背景 */
     max-width: 425px !important; /* PCでの最大幅制限 */
     margin: 0 auto; /* 中央寄せ */
-}
-
-/* アスペクト比プロパティが効く環境ではpaddingハックをリセットしても良いが、
-   スマホの挙動安定のためにpadding-top優先でも問題ありません */
-@supports (aspect-ratio: 850 / 1200) {
-    .canvas-wrapper {
-        /* 必要に応じて有効化してください。今回は安全策でコメントアウト */
-        /* height: auto; padding-top: 0; */
-    }
 }
 
 .canvas-wrapper canvas {
@@ -314,7 +302,8 @@ input[type="checkbox"]:checked + span::after {
     }
   .preview-panel {
     flex: 1;
-    min-width: 700px;
+    /* ★修正: PCの最小幅を700px -> 460pxに縮小 */
+    min-width: 460px;
     max-width: 800px;
     top: 85px;
   }

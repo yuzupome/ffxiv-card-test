@@ -15,7 +15,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Orbitron:wght@600&family=DotGothic16&family=Exo+2&family=Share+Tech&family=Permanent+Marker&family=Hachi+Maru+Pop&family=Dancing+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./assets/css/style.css" />
     
-    <!-- 縦型専用スタイル調整 (外部CSSでカバー済みですが念のため維持) -->
     <style>
         /* プレビューパネルを画面上部に固定 */
         .preview-panel {
@@ -40,16 +39,15 @@
             height: auto !important;
         }
 
-        /* ★修正: 高さ崩れ防止スタイル (style.cssの内容を補完) */
+        /* ★修正: 複雑なハックを廃止し、シンプルかつ堅牢な指定に変更 */
         .canvas-wrapper {
             position: relative;
             width: 100%;
-            max-width: 425px !important;
+            max-width: 425px !important; /* PCでの最大幅 */
             
-            /* アスペクト比ハック */
+            /* アスペクト比を維持 (モダンブラウザ対応) */
             aspect-ratio: 850 / 1200;
-            height: 0;
-            padding-top: 141.18%;
+            height: auto; /* 高さを自動計算させる */
 
             margin: 0 auto;
             background-color: #000000 !important; /* 強制黒背景 */
@@ -65,7 +63,7 @@
             display: block;
         }
 
-        /* ★修正: 一番下のレイヤーも強制黒 */
+        /* 背景レイヤーも黒く */
         #background-layer {
             background-color: #000000 !important;
         }
@@ -88,9 +86,10 @@
         <main class="preview-panel">
             <div class="canvas-container">
                 <div class="canvas-wrapper">
-                    <canvas id="background-layer"></canvas>
-                    <canvas id="character-layer"></canvas>
-                    <canvas id="ui-layer"></canvas>
+                    <!-- ★修正: タグに直接サイズを指定 (これが一番確実です) -->
+                    <canvas id="background-layer" width="850" height="1200"></canvas>
+                    <canvas id="character-layer" width="850" height="1200"></canvas>
+                    <canvas id="ui-layer" width="850" height="1200"></canvas>
                 </div>
             </div>
         </main>
