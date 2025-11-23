@@ -1,54 +1,33 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Smart Sticky Preview & Clean Error Handling
+ * Lightweight & High Compatibility Version
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // --- 1. デバイス判定とCanvas設定 ---
-        const userAgent = navigator.userAgent.toLowerCase();
-        const isMobileUA = /iphone|android|ipad|mobile/.test(userAgent);
-        const isSmallScreen = window.innerWidth <= 1024; 
-        const isMobile = isMobileUA || isSmallScreen;
-        
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
         
-        // 画質設定 (画質優先)
+        // 画質は落とさない（1.0倍）
+        // CSSで表示サイズを調整しているので、内部解像度は高くても重くなりにくい
         const SCALE_FACTOR = 1.0; 
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
 
+        // Canvas取得
         const canvas = document.getElementById('preview-canvas');
         if (!canvas) throw new Error("Canvas element 'preview-canvas' not found!");
         
-        const ctx = canvas.getContext('2d', { alpha: false });
+        // ★修正: alpha: false を削除（PCのホワイトアウト対策）
+        const ctx = canvas.getContext('2d');
+
+        // サイズ適用
         canvas.width = CANVAS_WIDTH;
         canvas.height = CANVAS_HEIGHT;
+
+        // スケール設定
         ctx.scale(SCALE_FACTOR, SCALE_FACTOR);
-
-        // --- ★追加: スマホ用スクロール追従ロジック ---
-        if (isMobile) {
-            const previewPanel = document.querySelector('.preview-panel');
-            const sentinel = document.createElement('div');
-            sentinel.style.position = 'absolute';
-            sentinel.style.top = '0';
-            sentinel.style.height = '1px';
-            sentinel.style.width = '100%';
-            // 監視用要素をbodyの先頭に仕込む
-            document.body.insertBefore(sentinel, document.body.firstChild);
-
-            const observer = new IntersectionObserver((entries) => {
-                // sentinelが画面外に出たら（＝スクロールしたら）クラスを付与
-                if (!entries[0].isIntersecting) {
-                    document.body.classList.add('is-stuck');
-                } else {
-                    document.body.classList.remove('is-stuck');
-                }
-            }, { threshold: 0 });
-
-            observer.observe(sentinel);
-        }
 
         // --- 2. DOM要素取得 ---
         const nameInput = document.getElementById('nameInput');
@@ -145,7 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
                 img.onload = () => { imageCache[src] = img; resolve(img); };
-                img.onerror = () => { console.error(`Failed to load: ${src}`); resolve(null); };
+                img.onerror = () => { resolve(null); };
                 img.src = src;
             });
         };
