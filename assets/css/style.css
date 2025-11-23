@@ -70,9 +70,9 @@ body.generator-page #app { visibility: hidden; }
     width: 100%;
     max-width: 100%;
     
-    /* アスペクト比確保 (850:1200) */
+    /* アスペクト比確保 */
     height: 0;
-    padding-top: 141.18%; 
+    padding-top: 141.18%; /* 1200 / 850 */
     
     border-radius: 8px;
     overflow: hidden;
@@ -140,36 +140,30 @@ body.generator-page #app { visibility: hidden; }
 }
 
 /* =========================================
-   ★スマホ用レイアウト (768px以下)
+   スマホ用 (768px以下)
    ========================================= */
 @media (max-width: 768px) {
     .preview-panel {
-        /* ヘッダーの下に張り付くように固定 */
-        position: sticky;
-        top: 0; 
-        z-index: 500; /* 入力フォームより手前に */
-        background-color: var(--bg-color); /* 背景色をつけて透けないようにする */
-        padding-bottom: 1rem; /* 下に少し余白 */
+        position: sticky; /* 上部固定 */
+        top: 70px; /* ヘッダーの高さ分空ける */
+        background-color: var(--bg-color);
+        padding-bottom: 1rem;
         border-bottom: 1px solid var(--border-color);
-        margin-bottom: 1rem;
+        margin-bottom: 2rem;
     }
     
     .canvas-wrapper {
-        /* 画面を占領しすぎないよう、高さの上限だけ設ける (任意) */
-        /* これがないとキーボードが出たときに入力欄が見えなくなるため推奨 */
-        max-height: 40vh; 
-        width: auto;
-        margin: 0 auto;
-        
-        /* アスペクト比維持のためにpaddingハックを解除して高さ基準にする */
-        padding-top: 0;
-        height: auto;
+        /* 画面の半分くらいの高さに制限して、残りを入力エリアに */
+        height: 40vh !important;
+        width: auto !important;
         aspect-ratio: 850 / 1200;
+        padding-top: 0 !important;
+        margin: 0 auto;
     }
 }
 
 
-/* --- パーツスタイル (変更なし) --- */
+/* --- パーツスタイル --- */
 .control-section { padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
 #controls > div:first-of-type { border-top: none; padding-top: 0; }
 .section-title { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem 0; color: var(--text-color); }

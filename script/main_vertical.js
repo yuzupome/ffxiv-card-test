@@ -1,6 +1,6 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Fix: Initialization Error & Drag Optimization
+ * Final Fix: Single Canvas Logic
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -9,16 +9,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const BASE_WIDTH = 850;
         const BASE_HEIGHT = 1200;
         
-        // 画質設定（1.0倍）
+        // 画質設定（1.0倍 = 高画質）
         const SCALE_FACTOR = 1.0; 
         const CANVAS_WIDTH = BASE_WIDTH * SCALE_FACTOR;
         const CANVAS_HEIGHT = BASE_HEIGHT * SCALE_FACTOR;
 
-        // Canvas取得
+        // ★修正: HTMLにある正しいID 'preview-canvas' を取得
         const canvas = document.getElementById('preview-canvas');
         if (!canvas) throw new Error("Canvas element 'preview-canvas' not found!");
         
-        // コンテキスト作成 (alpha: false は削除して標準モードに)
+        // コンテキスト作成
         const ctx = canvas.getContext('2d');
 
         // サイズ適用
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // スケール設定
         ctx.scale(SCALE_FACTOR, SCALE_FACTOR);
 
-        // --- 2. DOM要素 ---
+        // --- 2. DOM要素取得 ---
         const nameInput = document.getElementById('nameInput');
         const fontSelect = document.getElementById('fontSelect');
         const uploadImageInput = document.getElementById('uploadImage');
@@ -446,7 +446,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
 
-        // ★修正: drawCharacterLayer()呼び出し削除 & initialize修正
         const initialize = async () => {
             try {
                 iconBgColorPicker.value = '#CCCCCC';
@@ -454,7 +453,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loaderElement.style.display = 'none';
                 appElement.style.visibility = 'visible';
                 
-                // 削除: drawCharacterLayer(); // この関数はもう存在しないためエラーの原因だった
                 await preloadFonts();
                 fontSelect.value = state.font;
                 
