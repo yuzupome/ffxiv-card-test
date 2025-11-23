@@ -18,7 +18,11 @@ body {
   margin: 0;
   line-height: 1.6;
   overflow-x: hidden;
-  padding-bottom: 80px;
+  
+  /* ★修正: ページの底に巨大な余白を追加 */
+  /* これにより、どの入力項目でも「画面の真ん中」や「プレビューのすぐ下」までスクロールして */
+  /* 下をスカスカの状態にすることができます */
+  padding-bottom: 60vh; 
 }
 
 #app { display: flex; flex-direction: column; min-height: 100vh; }
@@ -97,12 +101,22 @@ body.generator-page #app { visibility: hidden; }
     z-index: 1;
 }
 
-#controls { display: flex; flex-direction: column; gap: 2.5rem; }
+/* ★修正: 項目同士の隙間を広げて「ゆとり」を持たせる */
+#controls { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 4rem; /* 2.5rem -> 4rem に拡大 */
+}
 
 /* =========================================
    PC用レイアウト (769px以上)
    ========================================= */
 @media (min-width: 769px) {
+    /* PCでは余白が大きすぎると間延びするので調整 */
+    body {
+        padding-bottom: 0; 
+    }
+    
     .content-wrapper {
         flex-direction: row;
         max-width: 1280px;
@@ -121,14 +135,10 @@ body.generator-page #app { visibility: hidden; }
     }
 
     .canvas-wrapper {
-        /* ★PC修正: 明確な高さを指定して潰れを防止 */
         padding-top: 0 !important;
-        height: 80vh !important; /* 画面高さの80% */
+        height: 80vh !important;
         width: auto !important;
-        
-        /* アスペクト比で幅を自動決定 */
         aspect-ratio: 850 / 1200;
-        
         margin-left: auto;
         margin-right: auto;
         border-radius: 12px;
@@ -140,6 +150,10 @@ body.generator-page #app { visibility: hidden; }
         min-width: 360px;
         padding-left: 2rem;
     }
+    
+    #controls {
+        gap: 3rem; /* PCは適度な間隔に */
+    }
 }
 
 /* =========================================
@@ -147,7 +161,7 @@ body.generator-page #app { visibility: hidden; }
    ========================================= */
 @media (max-width: 768px) {
     .preview-panel {
-        /* ★修正: 最上部に固定 */
+        /* 最上部に固定 */
         position: sticky;
         top: 0; 
         
@@ -156,15 +170,14 @@ body.generator-page #app { visibility: hidden; }
         padding-bottom: 1rem;
         border-bottom: 1px solid var(--border-color);
         margin-bottom: 1.5rem;
-        z-index: 1100; /* ヘッダーより上に来る可能性あり */
+        z-index: 1100; 
     }
     
     .canvas-wrapper {
-        /* ★修正: サイズ制限なし（フルサイズ） */
+        /* フルサイズ表示 */
         width: 100% !important;
         max-width: 100% !important;
         
-        /* padding-topハックでアスペクト比を維持しつつ高さを確保 */
         height: 0;
         padding-top: 141.18%; 
         
@@ -174,7 +187,7 @@ body.generator-page #app { visibility: hidden; }
 }
 
 
-/* --- パーツスタイル (変更なし) --- */
+/* --- パーツスタイル --- */
 .control-section { padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
 #controls > div:first-of-type { border-top: none; padding-top: 0; }
 .section-title { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem 0; color: var(--text-color); }
