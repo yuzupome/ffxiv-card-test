@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Orbitron:wght@600&family=DotGothic16&family=Exo+2&family=Share+Tech&family=Permanent+Marker&family=Hachi+Maru+Pop&family=Dancing+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./assets/css/style.css" />
     
-    <!-- 縦型専用スタイル調整 -->
+    <!-- 縦型専用スタイル調整 (外部CSSでカバー済みですが念のため維持) -->
     <style>
         /* プレビューパネルを画面上部に固定 */
         .preview-panel {
@@ -40,12 +40,17 @@
             height: auto !important;
         }
 
-        /* ★修正: 背景色をここで強力に指定 */
+        /* ★修正: 高さ崩れ防止スタイル (style.cssの内容を補完) */
         .canvas-wrapper {
             position: relative;
             width: 100%;
             max-width: 425px !important;
+            
+            /* アスペクト比ハック */
             aspect-ratio: 850 / 1200;
+            height: 0;
+            padding-top: 141.18%;
+
             margin: 0 auto;
             background-color: #000000 !important; /* 強制黒背景 */
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);

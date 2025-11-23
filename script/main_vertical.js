@@ -1,6 +1,6 @@
 /**
  * FFXIV Character Card Generator - Vertical Version
- * Force Style Injection Version
+ * Mobile Whiteout Fix Version
  */
 document.addEventListener('DOMContentLoaded', async () => {
 
@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const CANVAS_WIDTH = 850;
     const CANVAS_HEIGHT = 1200;
 
+    // 初期化時にCanvasサイズを設定（initialize内でも念押しで実行します）
     [backgroundLayer, characterLayer, uiLayer, miscBgCanvas, miscFrameCanvas, mainJobCompositeCanvas, subJobBgCanvas, subJobFrameCanvas].forEach(c => {
         c.width = CANVAS_WIDTH;
         c.height = CANVAS_HEIGHT;
@@ -626,8 +627,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const initialize = async () => {
         try {
-            // ★修正: まずはローディング画面を消す。何があっても画面を表示する。
-            // これでホワイトアウトが解消されるはずです
+            // --- 修正ポイント: Canvasの解像度をHTML属性として確実にセット ---
+            const canvases = [backgroundLayer, characterLayer, uiLayer];
+            canvases.forEach(c => {
+                if(c) {
+                    c.width = CANVAS_WIDTH;
+                    c.height = CANVAS_HEIGHT;
+                }
+            });
+            // ---------------------------------------------------------
+
             iconBgColorPicker.value = '#CCCCCC'; // 初期値セット
             stickyIconBgColorPicker.value = '#CCCCCC';
             
