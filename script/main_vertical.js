@@ -1,5 +1,5 @@
 /**
- * FFXIV Character Card Generator - Vertical Version (Final Fixed)
+ * FFXIV Character Card Generator - Vertical Version (Final Fixed & Feature Restored)
  * 3-Layer Architecture with Image Preloading & UI Fixes
  */
 
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mainColorPickerSection = document.getElementById('main-color-picker-section');
         const iconBgColorPicker = document.getElementById('iconBgColorPicker');
         const resetColorBtn = document.getElementById('resetColorBtn');
-        const resetTextColorBtn = document.getElementById('resetTextColorBtn'); // 追加
+        const resetTextColorBtn = document.getElementById('resetTextColorBtn');
         const stickyColorDrawer = document.getElementById('stickyColorDrawer');
         const drawerHandle = document.getElementById('drawerHandle');
         const stickyIconBgColorPicker = document.getElementById('stickyIconBgColorPicker');
@@ -118,6 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let isDownloading = false;
         let userHasManuallyPickedColor = false;
         let userHasManuallyPickedTextColor = false;
+        let previousMainJob = ''; // ★追加: 前回のメインジョブを記憶
 
         const getAssetPath = (options) => {
             const isEn = currentLang === 'en';
@@ -125,7 +126,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isEn && (options.category === 'base' || options.filename.includes('progress') || options.filename.includes('playstyle') || options.filename.includes('time'))) {
                 langSuffix = '_en';
             }
-            // positionが未設定なら_leftを強制
             const posSuffix = options.ignorePosition ? '' : (state.position || '_left'); 
             return `./assets/images/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
         };
@@ -192,10 +192,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const assetsToLoad = new Set();
             
-            // 1. テンプレートベース
             assetsToLoad.add(getTemplateAssetPath(false)); 
 
-            // 2. 各種パーツ
             const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
             const races = Array.from(raceSelect.options).filter(o => o.value).map(o => o.value);
             const dcs = Array.from(dcSelect.options).filter(o => o.value).map(o => o.value);
@@ -242,6 +240,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             assetsToLoad.add(getAssetPath({ category: 'frame', filename: 'Common_background_frame' }));
+
+            // Timeの背景もプリロードに追加（random/fulltime用）
+            assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: 'Common_time_random_bg' }));
+            assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: 'Common_time_fulltime_bg' }));
 
             const promises = [...assetsToLoad].map(src => loadImage(src));
             await Promise.all(promises);
@@ -324,7 +326,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }), config.iconTint);
             }
             
-            // ★Progress (枠の同時描画に対応)
             if (state.progress) {
                 const stages = ['shinsei', 'souten', 'guren', 'shikkoku', 'gyougetsu', 'ougon'];
                 if (state.progress === 'all_clear') {
@@ -353,8 +354,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (bgNum) await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_playstyle_${bgNum}_bg` }), getIconBgColor('playstyle'));
             }
 
-            // ★Time (左右判定エラー修正済み)
+            // ★Time (修正: 不定期とエオ在住は背景も描画)
             for (const time of state.playtimes) {
+                if (time === 'random' || time === 'fulltime') {
+                    await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_time_${time}_bg` }), getIconBgColor('time'));
+                }
                 await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `Common_time_${time}_frame` }), config.iconTint);
             }
 
@@ -461,8 +465,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         resetColorBtn.addEventListener('click', resetColorAction);
         stickyResetColorBtn.addEventListener('click', resetColorAction);
 
-        [dcSelect, raceSelect, progressSelect, mainjobSelect].forEach(el => el.addEventListener('change', () => { updateState(); debouncedRedrawUi(); }));
+        // ★修正: mainjobSelectを個別イベントリスナーに変更
+        [dcSelect, raceSelect, progressSelect].forEach(el => el.addEventListener('change', () => { updateState(); debouncedRedrawUi(); }));
         
+        // ★追加: メインジョブ変更時のサブジョブ自動選択ロジック
+        mainjobSelect.addEventListener('change', (e) => {
+            updateState();
+            const newMainJob = e.target.value;
+            
+            // 前回選んでいたメインジョブに対応するサブジョブボタンを非アクティブにする（任意）
+            // 今回は「メインと同じものをサブでも点灯させる」だけで良ければ以下のみでOK
+            if (previousMainJob) {
+               const prevBtn = subjobSection.querySelector(`button[data-value="${previousMainJob}"]`);
+               if (prevBtn) prevBtn.classList.remove('active');
+            }
+
+            if (newMainJob) {
+                const newBtn = subjobSection.querySelector(`button[data-value="${newMainJob}"]`);
+                if (newBtn) newBtn.classList.add('active');
+            }
+            previousMainJob = newMainJob;
+            
+            updateState(); // 状態更新
+            debouncedRedrawUi();
+        });
+
         [styleButtonsContainer, playtimeOptionsContainer, difficultyOptionsContainer, subjobSection].forEach(c => c.addEventListener('click', (e) => { 
             if (e.target.tagName === 'BUTTON') e.target.classList.toggle('active'); 
             if (e.target.tagName === 'BUTTON' || e.target.type === 'checkbox') { updateState(); debouncedRedrawUi(); }
