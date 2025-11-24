@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isEn && (options.category === 'base' || options.filename.includes('progress') || options.filename.includes('playstyle') || options.filename.includes('time'))) {
                 langSuffix = '_en';
             }
-            const posSuffix = options.ignorePosition ? '' : state.position; 
+            const posSuffix = options.ignorePosition ? '' : (state.position || '_left'); 
             return `./assets/images/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
         };
 
