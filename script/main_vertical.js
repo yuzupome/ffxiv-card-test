@@ -1,5 +1,5 @@
 /**
- * FFXIV Character Card Generator - Vertical Version (Final Fixed)
+ * FFXIV Character Card Generator - Vertical Version (Fixed & Robust)
  * 3-Layer Architecture
  */
 
@@ -27,9 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         [backgroundLayer, characterLayer, uiLayer].forEach(c => {
             c.width = CANVAS_WIDTH;
             c.height = CANVAS_HEIGHT;
-            // scale設定は drawTinted 側で制御するためここでは標準に戻す
-            // もしここでscaleする場合、drawTinted側での座標計算に注意が必要
-            c.getContext('2d').scale(SCALE_FACTOR, SCALE_FACTOR);
+            // 座標系をリセットして初期化
+            c.getContext('2d').setTransform(1, 0, 0, 1, 0, 0);
         });
 
         // UI合成用の一時Canvas
@@ -37,7 +36,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         uiCompositeCanvas.width = CANVAS_WIDTH;
         uiCompositeCanvas.height = CANVAS_HEIGHT;
         const uiCompositeCtx = uiCompositeCanvas.getContext('2d');
-        uiCompositeCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
 
         // --- 3. DOM要素 ---
         const nameInput = document.getElementById('nameInput');
@@ -149,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         };
 
-        // ★修正: 座標変換をシンプルに（横型と同じロジックへ）
+        // ★重要修正: 描画座標を確実に合わせるために setTransform を復活
         const drawTinted = async (targetCtx, path, tintColor) => {
             const img = await loadImage(path);
             if (!img) return;
@@ -158,16 +156,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             tempC.width = CANVAS_WIDTH;
             tempC.height = CANVAS_HEIGHT;
             const tempCtx = tempC.getContext('2d');
-            tempCtx.scale(SCALE_FACTOR, SCALE_FACTOR);
-            tempCtx.drawImage(img, 0, 0, BASE_WIDTH, BASE_HEIGHT);
+            tempCtx.drawImage(img, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
             if (tintColor) {
                 tempCtx.globalCompositeOperation = 'source-in';
                 tempCtx.fillStyle = tintColor;
-                tempCtx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+                tempCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             }
             
-            // setTransformによるリセットを削除し、単純な描画に変更
-            targetCtx.drawImage(tempC, 0, 0, BASE_WIDTH, BASE_HEIGHT);
+            // ターゲットに転送する際は座標系をリセットして絶対に(0,0)に描画させる
+            targetCtx.save();
+            targetCtx.setTransform(1, 0, 0, 1, 0, 0);
+            targetCtx.drawImage(tempC, 0, 0);
+            targetCtx.restore();
         };
 
         const createDebouncer = (func, delay) => {
@@ -211,6 +212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Layer 1: ユーザー画像
         const drawUserImageLayer = () => {
+            bgCtx.setTransform(1, 0, 0, 1, 0, 0); // リセット
             bgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             bgCtx.fillStyle = '#000000';
             bgCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -226,15 +228,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Layer 2: テンプレート（枠）
         const drawBaseFrameLayer = async () => {
+            charCtx.setTransform(1, 0, 0, 1, 0, 0);
             charCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             const path = getTemplateAssetPath(false);
-            console.log('Loading Frame:', path); // デバッグ用ログ
+            console.log('Loading Frame:', path);
             await drawTinted(charCtx, path);
         };
 
         // Layer 3: UIアイコン・文字
         const drawUiLayer = async () => {
+            uiCtx.setTransform(1, 0, 0, 1, 0, 0);
             uiCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
+            uiCompositeCtx.setTransform(1, 0, 0, 1, 0, 0);
             uiCompositeCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
             const config = templateConfig[state.template];
@@ -476,14 +482,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 finalCanvas.height = CANVAS_HEIGHT;
                 const finalCtx = finalCanvas.getContext('2d');
 
-                // 1. ユーザー画像
                 finalCtx.drawImage(backgroundLayer, 0, 0);
-                
-                // 2. テンプレート枠 (保存用CP版)
                 const cpPath = getTemplateAssetPath(true);
                 await drawTinted(finalCtx, cpPath);
-
-                // 3. UI
                 finalCtx.drawImage(uiLayer, 0, 0);
 
                 const imageUrl = finalCanvas.toDataURL('image/jpeg', 0.92);
@@ -529,7 +530,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 iconBgColorPicker.value = initialColor;
                 stickyIconBgColorPicker.value = initialColor;
                 
+                // フォント読み込み遅延対策として2回描画
                 await redrawAll();
+                setTimeout(redrawAll, 500); 
             } catch (e) {
                 console.error("Initialization error:", e);
                 loaderElement.style.display = 'none';
