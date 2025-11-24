@@ -1,6 +1,6 @@
 /**
- * FFXIV Character Card Generator - Vertical Version (Final)
- * 3-Layer Architecture with CP switching on save
+ * FFXIV Character Card Generator - Vertical Version (Final Fixed)
+ * 3-Layer Architecture
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -27,10 +27,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         [backgroundLayer, characterLayer, uiLayer].forEach(c => {
             c.width = CANVAS_WIDTH;
             c.height = CANVAS_HEIGHT;
+            // scale設定は drawTinted 側で制御するためここでは標準に戻す
+            // もしここでscaleする場合、drawTinted側での座標計算に注意が必要
             c.getContext('2d').scale(SCALE_FACTOR, SCALE_FACTOR);
         });
 
-        // UI合成用の一時Canvas（ちらつき防止・合成モード用）
+        // UI合成用の一時Canvas
         const uiCompositeCanvas = document.createElement('canvas');
         uiCompositeCanvas.width = CANVAS_WIDTH;
         uiCompositeCanvas.height = CANVAS_HEIGHT;
@@ -118,7 +120,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         let userHasManuallyPickedColor = false;
         let userHasManuallyPickedTextColor = false;
 
-        // パス取得関数
         const getAssetPath = (options) => {
             const isEn = currentLang === 'en';
             let langSuffix = '';
@@ -129,12 +130,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `./assets/images/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
         };
 
-        // ★修正点: テンプレート画像のパスを生成する専用関数
-        // isDownload=true なら _cp 付き、false なら _cp なしを返す
         const getTemplateAssetPath = (isDownload) => {
             const isEn = currentLang === 'en';
             const langSuffix = isEn ? '_en' : '';
-            const cpSuffix = isDownload ? '_cp' : ''; // 保存時だけ _cp をつける
+            const cpSuffix = isDownload ? '_cp' : '';
             const posSuffix = state.position;
             return `./assets/images/vertical/base/${state.template}${cpSuffix}${posSuffix}${langSuffix}.webp`;
         };
@@ -150,6 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         };
 
+        // ★修正: 座標変換をシンプルに（横型と同じロジックへ）
         const drawTinted = async (targetCtx, path, tintColor) => {
             const img = await loadImage(path);
             if (!img) return;
@@ -166,10 +166,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tempCtx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             }
             
-            targetCtx.save();
-            targetCtx.setTransform(1, 0, 0, 1, 0, 0);
-            targetCtx.drawImage(tempC, 0, 0);
-            targetCtx.restore();
+            // setTransformによるリセットを削除し、単純な描画に変更
+            targetCtx.drawImage(tempC, 0, 0, BASE_WIDTH, BASE_HEIGHT);
         };
 
         const createDebouncer = (func, delay) => {
@@ -211,7 +209,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // --- 描画処理 ---
 
-        // Layer 1 (最背面): ユーザー画像
+        // Layer 1: ユーザー画像
         const drawUserImageLayer = () => {
             bgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             bgCtx.fillStyle = '#000000';
@@ -226,15 +224,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
 
-        // Layer 2 (中間): テンプレート（枠） - ★プレビュー用（_cpなし）
+        // Layer 2: テンプレート（枠）
         const drawBaseFrameLayer = async () => {
             charCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            // isDownload = false で呼び出し
             const path = getTemplateAssetPath(false);
+            console.log('Loading Frame:', path); // デバッグ用ログ
             await drawTinted(charCtx, path);
         };
 
-        // Layer 3 (最前面): UIアイコン・文字
+        // Layer 3: UIアイコン・文字
         const drawUiLayer = async () => {
             uiCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             uiCompositeCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -313,15 +311,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const redrawAll = async () => {
             updateState();
             drawUserImageLayer();
-            await drawBaseFrameLayer(); // ここはプレビュー用なので _cp なし
+            await drawBaseFrameLayer();
             await drawUiLayer();
         };
 
         const debouncedRedrawUi = createDebouncer(drawUiLayer, 50);
         const debouncedRedrawAll = createDebouncer(redrawAll, 100);
 
-        // --- ユーザー操作イベント ---
-        
+        // --- イベントリスナー ---
         templateSelect.addEventListener('change', async () => {
             updateState();
             if (!userHasManuallyPickedColor) {
@@ -388,7 +385,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             reader.readAsDataURL(file);
         });
 
-        // --- 拡大縮小・移動ロジック ---
+        // --- 拡大縮小・移動 ---
         let isDragging = false;
         let animationFrameId = null;
         let initialDistance = 0;
@@ -464,13 +461,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         uiLayer.addEventListener('mousedown', handleStart);
         window.addEventListener('mousemove', handleMove);
         window.addEventListener('mouseup', handleEnd);
-        
         uiLayer.addEventListener('touchstart', handleStart, { passive: false });
         uiLayer.addEventListener('touchmove', handleMove, { passive: false });
         window.addEventListener('touchend', handleEnd);
 
-        // ★修正点: ダウンロード処理 (3枚を合成して保存)
-        // ここで _cp 付き画像を挟み込む
+        // ダウンロード処理
         downloadBtn.addEventListener('click', async () => {
             if (isDownloading) return;
             isDownloading = true;
@@ -481,14 +476,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 finalCanvas.height = CANVAS_HEIGHT;
                 const finalCtx = finalCanvas.getContext('2d');
 
-                // 1. ユーザー画像 (backgroundLayerからコピー)
+                // 1. ユーザー画像
                 finalCtx.drawImage(backgroundLayer, 0, 0);
                 
-                // 2. テンプレート枠 (★ここで _cp 付きをロードして描画)
-                const cpPath = getTemplateAssetPath(true); // isDownload = true
+                // 2. テンプレート枠 (保存用CP版)
+                const cpPath = getTemplateAssetPath(true);
                 await drawTinted(finalCtx, cpPath);
 
-                // 3. UI (uiLayerからコピー)
+                // 3. UI
                 finalCtx.drawImage(uiLayer, 0, 0);
 
                 const imageUrl = finalCanvas.toDataURL('image/jpeg', 0.92);
