@@ -108,7 +108,8 @@ body.generator-page #app { visibility: hidden; }
     .vertical-mode .canvas-wrapper {
         height: 55vh !important;
         width: auto !important;
-        aspect-ratio: 850 / 1200; /* 縦型アスペクト比 */
+        aspect-ratio: 850 / 1200;
+        padding-top: 0 !important; 
     }
 
     .controls-panel { flex: 1; min-width: 360px; padding-left: 2rem; }
