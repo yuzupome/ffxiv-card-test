@@ -1,5 +1,5 @@
 /**
- * FFXIV Character Card Generator - Vertical Version (Final Fixed & Feature Restored)
+ * FFXIV Character Card Generator - Vertical Version (Modified for EN support)
  * 3-Layer Architecture with Image Preloading & UI Fixes
  */
 
@@ -118,24 +118,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         let isDownloading = false;
         let userHasManuallyPickedColor = false;
         let userHasManuallyPickedTextColor = false;
-        let previousMainJob = ''; // ★追加: 前回のメインジョブを記憶
+        let previousMainJob = '';
 
+        // ★修正: 英語版対応ロジックの強化
         const getAssetPath = (options) => {
             const isEn = currentLang === 'en';
             let langSuffix = '';
-            if (isEn && (options.category === 'base' || options.filename.includes('progress') || options.filename.includes('playstyle') || options.filename.includes('time'))) {
-                langSuffix = '_en';
+            
+            if (isEn) {
+                if (options.category === 'base') {
+                    // ベーステンプレートは常に _en
+                    langSuffix = '_en';
+                } else if (options.category === 'parts_text' && options.filename.includes('progress')) {
+                    // 進行度文字: all_clear 以外は _en
+                    if (!options.filename.includes('all_clear')) {
+                        langSuffix = '_en';
+                    }
+                } else if (options.category === 'parts_frame' && options.filename.includes('time')) {
+                    // 時間枠: random と fulltime のみ _en
+                    if (options.filename.includes('random') || options.filename.includes('fulltime')) {
+                        langSuffix = '_en';
+                    }
+                }
+                // 上記以外のカテゴリ（job, race, dc, playstyle iconなど）は _en なし
             }
+            
             const posSuffix = options.ignorePosition ? '' : (state.position || '_left'); 
-            return `./assets/images/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
+            return `./assets/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
         };
 
         const getTemplateAssetPath = (isDownload) => {
+            // テンプレートも base カテゴリ相当なので _en を付ける
             const isEn = currentLang === 'en';
             const langSuffix = isEn ? '_en' : '';
             const cpSuffix = isDownload ? '_cp' : '';
             const posSuffix = state.position || '_left';
-            return `./assets/images/vertical/base/${state.template}${cpSuffix}${posSuffix}${langSuffix}.webp`;
+            return `./assets/vertical/base/${state.template}${cpSuffix}${posSuffix}${langSuffix}.webp`;
         };
 
         const loadImage = (src) => {
@@ -465,16 +483,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         resetColorBtn.addEventListener('click', resetColorAction);
         stickyResetColorBtn.addEventListener('click', resetColorAction);
 
-        // ★修正: mainjobSelectを個別イベントリスナーに変更
         [dcSelect, raceSelect, progressSelect].forEach(el => el.addEventListener('change', () => { updateState(); debouncedRedrawUi(); }));
         
-        // ★追加: メインジョブ変更時のサブジョブ自動選択ロジック
         mainjobSelect.addEventListener('change', (e) => {
             updateState();
             const newMainJob = e.target.value;
             
-            // 前回選んでいたメインジョブに対応するサブジョブボタンを非アクティブにする（任意）
-            // 今回は「メインと同じものをサブでも点灯させる」だけで良ければ以下のみでOK
             if (previousMainJob) {
                const prevBtn = subjobSection.querySelector(`button[data-value="${previousMainJob}"]`);
                if (prevBtn) prevBtn.classList.remove('active');
@@ -486,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             previousMainJob = newMainJob;
             
-            updateState(); // 状態更新
+            updateState(); 
             debouncedRedrawUi();
         });
 
@@ -634,7 +648,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         closeModalBtn.addEventListener('click', () => { saveModal.classList.add('hidden'); });
         
-        // ★スクロールイベントは削除済み（常に表示）
         drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
 
         const initialize = async () => {
