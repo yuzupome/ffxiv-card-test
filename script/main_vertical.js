@@ -120,41 +120,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         let userHasManuallyPickedTextColor = false;
         let previousMainJob = '';
 
-        // ★修正: 英語版対応ロジックの強化
+
         const getAssetPath = (options) => {
-            const isEn = currentLang === 'en';
-            let langSuffix = '';
-            
+        const isEn = currentLang === 'en';
+        let langSuffix = '';
+    
             if (isEn) {
                 if (options.category === 'base') {
-                    // ベーステンプレートは常に _en
                     langSuffix = '_en';
                 } else if (options.category === 'parts_text' && options.filename.includes('progress')) {
-                    // 進行度文字: all_clear 以外は _en
                     if (!options.filename.includes('all_clear')) {
                         langSuffix = '_en';
                     }
                 } else if (options.category === 'parts_frame' && options.filename.includes('time')) {
-                    // 時間枠: random と fulltime のみ _en
                     if (options.filename.includes('random') || options.filename.includes('fulltime')) {
                         langSuffix = '_en';
                     }
                 }
-                // 上記以外のカテゴリ（job, race, dc, playstyle iconなど）は _en なし
             }
-            
-            const posSuffix = options.ignorePosition ? '' : (state.position || '_left'); 
-            return `./assets/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
-        };
+    
+    const posSuffix = options.ignorePosition ? '' : (state.position || '_left'); 
+    return `./assets/images/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
+};
 
-        const getTemplateAssetPath = (isDownload) => {
-            // テンプレートも base カテゴリ相当なので _en を付ける
-            const isEn = currentLang === 'en';
-            const langSuffix = isEn ? '_en' : '';
-            const cpSuffix = isDownload ? '_cp' : '';
-            const posSuffix = state.position || '_left';
-            return `./assets/vertical/base/${state.template}${cpSuffix}${posSuffix}${langSuffix}.webp`;
-        };
+const getTemplateAssetPath = (isDownload) => {
+    const isEn = currentLang === 'en';
+    const langSuffix = isEn ? '_en' : '';
+    const cpSuffix = isDownload ? '_cp' : '';
+    const posSuffix = state.position || '_left';
+    return `./assets/images/vertical/base/${state.template}${cpSuffix}${posSuffix}${langSuffix}.webp`;
+};
 
         const loadImage = (src) => {
             if (imageCache[src]) return Promise.resolve(imageCache[src]);
