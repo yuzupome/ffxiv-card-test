@@ -227,8 +227,48 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
 .color-picker-ui { display: flex; align-items: center; gap: 1rem; }
 .color-picker-ui input[type="color"] { width: 48px; height: 48px; padding: 0; border: 4px solid var(--surface-color); border-radius: 50%; background: transparent; cursor: pointer; box-shadow: 0 0 0 1px var(--border-color); }
 .reset-btn { background-color: var(--surface-color); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: var(--text-secondary-color); }
-.text-color-row { margin-top: 1rem; display: flex; align-items: center; gap: 1rem; }
+.text-color-row { 
+    margin-top: 1rem; 
+    display: flex; 
+    align-items: center; 
+    gap: 1rem; 
+    
+    width: 100%;
+    padding: 0.5rem;
+    background-color: var(--surface-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
 
+.text-color-label {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+    white-space: nowrap;
+}
+
+.color-picker-ui input[type="color"] { 
+    width: 40px; 
+    height: 40px; 
+    padding: 0; 
+    border: 2px solid #fff; 
+    border-radius: 50%; 
+    background: transparent; 
+    cursor: pointer; 
+    box-shadow: 0 0 0 1px var(--border-color), 0 2px 5px rgba(0,0,0,0.1); 
+    appearance: none;
+    -webkit-appearance: none;
+    overflow: hidden;
+}
+
+.color-picker-ui input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0; 
+}
+.color-picker-ui input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 50%;
+}
 .site-footer { display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 3rem 1rem; border-top: 1px solid var(--border-color); color: var(--text-secondary-color); font-size: 0.9rem; margin-top: 3rem; padding-bottom: 3rem; }
 .site-footer a { color: var(--text-secondary-color); text-decoration: none; transition: color 0.2s ease; }
 .footer-to-top { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
@@ -238,5 +278,4 @@ input[type="checkbox"]:checked + span::after { content: '✓'; color: white; pos
 .modal-content { background: var(--bg-color); padding: 2rem; border-radius: 12px; max-width: 90vw; max-height: 80vh; overflow-y: auto; text-align: center; position: relative; }
 .close-button { position: absolute; top: 1rem; right: 1rem; font-size: 2rem; background: none; border: none; cursor: pointer; line-height: 1; }
 .modal-content img { max-width: 100%; height: auto; border-radius: 4px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-
 .mobile-action-bar, .bottom-sheet-header, .sticky-drawer { display: none !important; }
