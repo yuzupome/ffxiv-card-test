@@ -218,9 +218,9 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
    ========================================= */
 .sticky-drawer {
     position: fixed;
-    top: 40%;
+    top: 75%;
     right: 0;
-    z-index: 990;
+    z-index: 2000;
     display: flex;
     align-items: flex-start;
     transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
@@ -243,7 +243,7 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 
 .drawer-handle {
     background-color: var(--surface-color);
-    color: var(--text-secondary-color);
+    color: #FF8C00; 
     padding: 12px 8px;
     border: 1px solid var(--border-color);
     border-right: none;
@@ -258,7 +258,7 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 
 .drawer-handle:hover {
     background-color: #fff;
-    color: var(--primary-color);
+    color: #FF8C00;
 }
 
 .drawer-panel {

@@ -1,6 +1,6 @@
 /**
- * FFXIV Character Card Generator - Vertical Version (Final High Performance)
- * 3-Layer Architecture with Image Preloading
+ * FFXIV Character Card Generator - Vertical Version (Final Fixed)
+ * 3-Layer Architecture with Image Preloading & UI Fixes
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const backgroundLayer = document.getElementById('background-layer');
         const characterLayer = document.getElementById('character-layer');
         const uiLayer = document.getElementById('ui-layer');
-        const miniLoader = document.getElementById('mini-loader'); // 追加
+        const miniLoader = document.getElementById('mini-loader'); 
 
         if (!backgroundLayer || !characterLayer || !uiLayer) throw new Error("Canvas layers not found!");
 
@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mainColorPickerSection = document.getElementById('main-color-picker-section');
         const iconBgColorPicker = document.getElementById('iconBgColorPicker');
         const resetColorBtn = document.getElementById('resetColorBtn');
+        const resetTextColorBtn = document.getElementById('resetTextColorBtn'); // 追加
         const stickyColorDrawer = document.getElementById('stickyColorDrawer');
         const drawerHandle = document.getElementById('drawerHandle');
         const stickyIconBgColorPicker = document.getElementById('stickyIconBgColorPicker');
@@ -124,6 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isEn && (options.category === 'base' || options.filename.includes('progress') || options.filename.includes('playstyle') || options.filename.includes('time'))) {
                 langSuffix = '_en';
             }
+            // positionが未設定なら_leftを強制
             const posSuffix = options.ignorePosition ? '' : (state.position || '_left'); 
             return `./assets/images/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
         };
@@ -132,7 +134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isEn = currentLang === 'en';
             const langSuffix = isEn ? '_en' : '';
             const cpSuffix = isDownload ? '_cp' : '';
-            const posSuffix = state.position;
+            const posSuffix = state.position || '_left';
             return `./assets/images/vertical/base/${state.template}${cpSuffix}${posSuffix}${langSuffix}.webp`;
         };
 
@@ -142,7 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
                 img.onload = () => { imageCache[src] = img; resolve(img); };
-                img.onerror = () => { /* console.warn(`Failed to load: ${src}`); */ resolve(null); }; // 404は見逃す
+                img.onerror = () => { resolve(null); }; 
                 img.src = src;
             });
         };
@@ -179,92 +181,72 @@ document.addEventListener('DOMContentLoaded', async () => {
             return Promise.all(fonts.map(font => document.fonts.load(`10px ${font}`).catch(() => {})));
         };
 
-        // ★追加: 素材の先読み機能
+        // ★素材の先読み機能
         const preloadTemplateAssets = async (templateName) => {
-            miniLoader.classList.remove('hidden'); // ローダー表示
+            if(miniLoader) miniLoader.classList.remove('hidden'); 
             const config = templateConfig[templateName];
             if (!config) {
-                miniLoader.classList.add('hidden');
+                if(miniLoader) miniLoader.classList.add('hidden');
                 return;
             }
 
             const assetsToLoad = new Set();
             
-            // 1. テンプレートベース画像 (現在のPositionで)
-            // 注: Positionを変えたら再ロードが必要なので、changeイベントで再呼び出しする
+            // 1. テンプレートベース
             assetsToLoad.add(getTemplateAssetPath(false)); 
 
-            // 2. 選択肢の要素
+            // 2. 各種パーツ
             const raceAssetMap = { 'au_ra': 'aura', 'miqote': 'miqo_te' };
             const races = Array.from(raceSelect.options).filter(o => o.value).map(o => o.value);
             const dcs = Array.from(dcSelect.options).filter(o => o.value).map(o => o.value);
             const progresses = Array.from(progressSelect.options).filter(o => o.value).map(o => o.value);
             const styles = Array.from(styleButtonsContainer.querySelectorAll('button')).map(b => b.dataset.value);
-            const times = ['morning', 'daytime', 'night', 'midnight', 'random', 'fulltime']; // Timeはcheckboxから全パターン推測
             const difficulties = Array.from(difficultyOptionsContainer.querySelectorAll('input')).map(i => i.value);
             const mainJobs = Array.from(mainjobSelect.options).filter(o => o.value).map(o => o.value);
             const subJobs = Array.from(subjobSection.querySelectorAll('button')).map(b => b.dataset.value);
 
-            // パス生成ヘルパー (ignorePosition: false を前提として、現在のstate.positionを使う)
-            // Verticalの場合は全てのパーツに _left / _right がつく
-            
-            // Race
             for (const race of races) {
                 const raceValue = raceAssetMap[race] || race;
                 assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: `Common_race_${raceValue}_bg` }));
                 assetsToLoad.add(getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }));
             }
-            // DC (Common or Royal)
             const dcTheme = templateName.startsWith('Royal') ? 'Royal' : 'Common';
             for (const dc of dcs) {
                 assetsToLoad.add(getAssetPath({ category: 'parts_text', filename: `${dcTheme}_dc_${dc}`, ignorePosition: true }));
             }
-            // Progress
             for (const progress of progresses) {
                 const pFile = progress === 'gyougetsu' ? 'gyougetsu' : progress;
-                assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: `Common_progress_${progress}_bg` })); // bgは配列名そのまま
+                assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: `Common_progress_${progress}_bg` }));
                 assetsToLoad.add(getAssetPath({ category: 'parts_text', filename: `Common_progress_${pFile}_moji` }));
                 assetsToLoad.add(getAssetPath({ category: 'parts_frame', filename: `Common_progress_${pFile}_frame` }));
                 if (progress === 'all_clear') {
                      assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: 'Common_progress_all_clear_bg' }));
                 }
             }
-            // Playstyle
             const playstyleBgNumMap = { leveling: '01', raid: '06', pvp: '03', dd: '14', hunt: '09', map: '08', gatherer: '05', crafter: '07', gil: '02', perform: '10', streaming: '12', glam: '04', studio: '13', housing: '11', screenshot: '15', drawing: '16', roleplay: '17' };
             for (const style of styles) {
                 const bgNum = playstyleBgNumMap[style];
                 if (bgNum) assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: `Common_playstyle_${bgNum}_bg` }));
             }
-            // Time
-            for (const time of times) {
-                // 休日・平日・その他でファイル名の規則が違うが、ここでは簡易的に全パターン網羅は難しいので
-                // ユーザーがクリックしたときに遅延しても許容するか、あるいは主要なものを読む
-                // ここでは一旦スキップ（数が多いため）
-            }
-            // Difficulty
             for (const diff of difficulties) {
                 assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: `Common_raid_${diff}_bg` }));
             }
-            // Main Job
             for (const job of mainJobs) {
                 const filename = JOB_FILENAME_MAP[job] || job;
                 assetsToLoad.add(getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_main` }));
             }
-            // Sub Job
             for (const job of subJobs) {
                 const filename = JOB_FILENAME_MAP[job] || job;
                 assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: `Common_job_${filename}_sub_bg` }));
                 assetsToLoad.add(getAssetPath({ category: 'parts_text', filename: `Common_job_${filename}_sub_frame` }));
             }
             
-            // Frame (bg layer)
             assetsToLoad.add(getAssetPath({ category: 'frame', filename: 'Common_background_frame' }));
 
-            // 実行
             const promises = [...assetsToLoad].map(src => loadImage(src));
             await Promise.all(promises);
             
-            miniLoader.classList.add('hidden'); // 完了
+            if(miniLoader) miniLoader.classList.add('hidden'); 
         };
 
         const updateState = () => {
@@ -342,18 +324,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }), config.iconTint);
             }
             
+            // ★Progress (枠の同時描画に対応)
             if (state.progress) {
                 const stages = ['shinsei', 'souten', 'guren', 'shikkoku', 'gyougetsu', 'ougon'];
                 if (state.progress === 'all_clear') {
-                    for (const s of stages) await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_progress_${s}_bg` }), getIconBgColor('progress'));
+                    for (const s of stages) {
+                        await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_progress_${s}_bg` }), getIconBgColor('progress'));
+                        await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `Common_progress_${s}_frame` }), config.iconTint);
+                    }
                     await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_bg', filename: 'Common_progress_all_clear_bg' }), getIconBgColor('progress'));
+                    await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_frame', filename: 'Common_progress_all_clear_frame' }), config.iconTint);
                 } else {
                     const idx = stages.indexOf(state.progress);
-                    if (idx > -1) for (let i = 0; i <= idx; i++) await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_progress_${stages[i]}_bg` }), getIconBgColor('progress'));
+                    if (idx > -1) {
+                        for (let i = 0; i <= idx; i++) {
+                            await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_progress_${stages[i]}_bg` }), getIconBgColor('progress'));
+                            await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `Common_progress_${stages[i]}_frame` }), config.iconTint);
+                        }
+                    }
                 }
                 const pFile = state.progress === 'gyougetsu' ? 'gyougetsu' : state.progress;
                 await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_text', filename: `Common_progress_${pFile}_moji` }), config.iconTint);
-                await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `Common_progress_${pFile}_frame` }), config.iconTint);
             }
 
             const playstyleBgNumMap = { leveling: '01', raid: '06', pvp: '03', dd: '14', hunt: '09', map: '08', gatherer: '05', crafter: '07', gil: '02', perform: '10', streaming: '12', glam: '04', studio: '13', housing: '11', screenshot: '15', drawing: '16', roleplay: '17' };
@@ -362,6 +353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (bgNum) await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_playstyle_${bgNum}_bg` }), getIconBgColor('playstyle'));
             }
 
+            // ★Time (左右判定エラー修正済み)
             for (const time of state.playtimes) {
                 await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `Common_time_${time}_frame` }), config.iconTint);
             }
@@ -412,7 +404,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // --- イベントリスナー ---
         templateSelect.addEventListener('change', async () => {
             updateState();
-            // テンプレート変更時に先読みを実行
             await preloadTemplateAssets(state.template);
             
             if (!userHasManuallyPickedColor) {
@@ -430,30 +421,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             await redrawAll();
         });
         
-        // Positionを変えたら全ての素材の _left / _right が変わるので、ここでもプリロードを呼ぶ
         positionSelect.addEventListener('change', async () => { 
             updateState(); 
             await preloadTemplateAssets(state.template);
             await redrawAll(); 
         });
         
+        // Text Color Reset
         textColorPicker.addEventListener('input', () => { 
             userHasManuallyPickedTextColor = true; 
             updateState(); 
             debouncedRedrawUi(); 
         });
         
-        const resetTextColorBtn = document.getElementById('resetTextColorBtn');
-        resetTextColorBtn.addEventListener('click', () => {
-            userHasManuallyPickedTextColor = false;
-            const config = templateConfig[state.template];
-            if (config && config.nameColor) {
-                textColorPicker.value = config.nameColor;
-            }
-
-            updateState();
-            debouncedRedrawUi();
-        });
+        if (resetTextColorBtn) {
+            resetTextColorBtn.addEventListener('click', () => {
+                userHasManuallyPickedTextColor = false;
+                const config = templateConfig[state.template];
+                if (config && config.nameColor) {
+                    textColorPicker.value = config.nameColor;
+                }
+                updateState();
+                debouncedRedrawUi();
+            });
+        }
 
         const handleColorInput = (s, t) => { userHasManuallyPickedColor = true; t.value = s.value; updateState(); debouncedRedrawUi(); };
         iconBgColorPicker.addEventListener('input', () => handleColorInput(iconBgColorPicker, stickyIconBgColorPicker));
@@ -616,6 +607,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         closeModalBtn.addEventListener('click', () => { saveModal.classList.add('hidden'); });
         
+        // ★スクロールイベントは削除済み（常に表示）
         drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
 
         const initialize = async () => {
@@ -633,7 +625,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 iconBgColorPicker.value = initialColor;
                 stickyIconBgColorPicker.value = initialColor;
                 
-                // 初回の先読みと描画
                 await preloadTemplateAssets(state.template);
                 await redrawAll();
                 setTimeout(redrawAll, 500); 
