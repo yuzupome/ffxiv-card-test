@@ -437,8 +437,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             await redrawAll(); 
         });
         
-        textColorPicker.addEventListener('input', () => { userHasManuallyPickedTextColor = true; updateState(); debouncedRedrawUi(); });
+        textColorPicker.addEventListener('input', () => { 
+            userHasManuallyPickedTextColor = true; 
+            updateState(); 
+            debouncedRedrawUi(); 
+        });
         
+        const resetTextColorBtn = document.getElementById('resetTextColorBtn');
+        resetTextColorBtn.addEventListener('click', () => {
+            userHasManuallyPickedTextColor = false;
+            const config = templateConfig[state.template];
+            if (config && config.nameColor) {
+                textColorPicker.value = config.nameColor;
+            }
+
+            updateState();
+            debouncedRedrawUi();
+        });
+
         const handleColorInput = (s, t) => { userHasManuallyPickedColor = true; t.value = s.value; updateState(); debouncedRedrawUi(); };
         iconBgColorPicker.addEventListener('input', () => handleColorInput(iconBgColorPicker, stickyIconBgColorPicker));
         stickyIconBgColorPicker.addEventListener('input', () => handleColorInput(stickyIconBgColorPicker, iconBgColorPicker));
@@ -600,13 +616,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         closeModalBtn.addEventListener('click', () => { saveModal.classList.add('hidden'); });
         
-        window.addEventListener('scroll', () => { 
-            if(window.innerWidth > 768) {
-                const rect = mainColorPickerSection.getBoundingClientRect(); 
-                if (rect.bottom < 50) stickyColorDrawer.classList.remove('is-hidden'); 
-                else { stickyColorDrawer.classList.add('is-hidden'); stickyColorDrawer.classList.add('is-closed'); }
-            }
-        });
         drawerHandle.addEventListener('click', () => stickyColorDrawer.classList.toggle('is-closed'));
 
         const initialize = async () => {

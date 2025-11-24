@@ -67,8 +67,8 @@
                             <div>
                                 <h2 class="section-title">Layout</h2>
                                 <select id="positionSelect">
-                                    <option value="_left">キャラ右 / 枠左 (Left)</option>
-                                    <option value="_right">キャラ左 / 枠右 (Right)</option>
+                                    <option value="_left">キャラ右 / 枠左</option>
+                                    <option value="_right">キャラ左 / 枠右</option>
                                 </select>
                             </div>
                         </div>
@@ -103,6 +103,7 @@
                             <span class="text-color-label">Text Color</span>
                             <div class="color-picker-ui">
                                 <input type="color" id="textColorPicker" value="#ffffff" title="文字色を選択">
+                                <button id="resetTextColorBtn" class="reset-btn" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">元の色に戻す</button>
                             </div>
                         </div>
 
@@ -133,11 +134,11 @@
                                 <option value="" disabled selected>種族</option>
                                 <option value="au_ra">アウラ</option>
                                 <option value="hrothgar">ロスガル</option>
+                                <option value="roegadyn">ルガディン</option>
                                 <option value="viera">ヴィエラ</option>
                                 <option value="elezen">エレゼン</option>
                                 <option value="miqote">ミコッテ</option>
                                 <option value="hyur">ヒューラン</option>
-                                <option value="roegadyn">ルガディン</option>
                                 <option value="lalafell">ララフェル</option>
                             </select>
                             <select id="progressSelect" required>
@@ -193,6 +194,16 @@
                     </div>
 
                     <div class="control-section">
+                        <h2 class="section-title">Difficulty</h2>
+                        <div id="difficultyOptions" class="checkbox-group-single">
+                            <label><input type="checkbox" value="extreme" /><span></span>極</label>
+                            <label><input type="checkbox" value="unreal" /><span></span>幻</label>
+                            <label><input type="checkbox" value="savage" /><span></span>零式</label>
+                            <label><input type="checkbox" value="ultimate" /><span></span>絶</label>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
                         <h2 class="section-title">Play Time</h2>
                         <div id="playtimeOptions" class="checkbox-group">
                             <div class="time-section">
@@ -220,16 +231,6 @@
                                     <label><input type="checkbox" class="other" value="fulltime" /><span></span>エオ在住</label>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="control-section">
-                        <h2 class="section-title">Difficulty</h2>
-                        <div id="difficultyOptions" class="checkbox-group-single">
-                            <label><input type="checkbox" value="extreme" /><span></span>極</label>
-                            <label><input type="checkbox" value="unreal" /><span></span>幻</label>
-                            <label><input type="checkbox" value="savage" /><span></span>零式</label>
-                            <label><input type="checkbox" value="ultimate" /><span></span>絶</label>
                         </div>
                     </div>
                 

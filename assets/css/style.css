@@ -106,7 +106,7 @@ body.generator-page #app { visibility: hidden; }
 
     /* ★追加: PC用 縦型専用設定 */
     .vertical-mode .canvas-wrapper {
-        height: 80vh !important;
+        height: 55vh !important;
         width: auto !important;
         aspect-ratio: 850 / 1200; /* 縦型アスペクト比 */
     }
@@ -213,4 +213,70 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 .close-button { position: absolute; top: 1rem; right: 1rem; font-size: 2rem; background: none; border: none; cursor: pointer; line-height: 1; }
 .modal-content img { max-width: 100%; height: auto; border-radius: 4px; margin-top: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
-.mobile-action-bar, .bottom-sheet-header, .sticky-drawer { display: none !important; }
+/* =========================================
+   右側固定パレット (Sticky Drawer)
+   ========================================= */
+.sticky-drawer {
+    position: fixed;
+    top: 40%;
+    right: 0;
+    z-index: 990;
+    display: flex;
+    align-items: flex-start;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
+    filter: drop-shadow(-2px 4px 10px rgba(0,0,0,0.1));
+}
+
+.sticky-drawer.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(20px);
+}
+
+.sticky-drawer.is-closed {
+    transform: translateX(280px);
+}
+
+.sticky-drawer.is-hidden.is-closed {
+    transform: translateX(300px);
+}
+
+.drawer-handle {
+    background-color: var(--surface-color);
+    color: var(--text-secondary-color);
+    padding: 12px 8px;
+    border: 1px solid var(--border-color);
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+}
+
+.drawer-handle:hover {
+    background-color: #fff;
+    color: var(--primary-color);
+}
+
+.drawer-panel {
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    border-right: none;
+    border-radius: 0 0 0 8px;
+    padding: 1.5rem;
+    width: 280px;
+}
+
+.sticky-picker-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    margin: 0 0 1rem 0;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
