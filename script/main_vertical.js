@@ -85,6 +85,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             'miner': 'miner', 'botanist': 'botanist', 'fisher': 'fisher'
         };
 
+        // ▼ 日本語版(JP)の紐づけ設定（従来のまま）
+        const playstyleBgNumMap_JP = { 
+            leveling: '01', gil: '02', pvp: '03', glam: '04', gatherer: '05', 
+            raid: '06', crafter: '07', map: '08', hunt: '09', perform: '10', 
+            housing: '11', streaming: '12', studio: '13', dd: '14', 
+            screenshot: '15', drawing: '16', roleplay: '17' 
+        };
+
+        // ▼ 英語版(EN)の紐づけ設定（ご指示いただいた内容に変更）
+        const playstyleBgNumMap_EN = { 
+            leveling: '01', 
+            gil: '02', 
+            pvp: '03', 
+            perform: '04',
+            gatherer: '05', 
+            raid: '06', 
+            crafter: '07', 
+            map: '08', 
+            streaming: '09',
+            hunt: '10',
+            housing: '11', 
+            glam: '12',
+            screenshot: '13',
+            dd: '14', 
+            studio: '15',
+            drawing: '16', 
+            roleplay: '17' 
+        };
+
+        // 言語判定でマップを切り替える
+        const currentLang = document.documentElement.lang || 'ja';
+        const isEn = currentLang === 'en';
+        const playstyleBgNumMap = isEn ? playstyleBgNumMap_EN : playstyleBgNumMap_JP;
+
+
         const templateConfig = {
             'Gothic_black':   { nameColor: '#ffffff', iconTint: '#ffffff', defaultBg: '#A142CD', iconTheme: 'Common' },
             'Gothic_white':   { nameColor: '#000000', iconTint: '#000000', defaultBg: '#6CD9D6', iconTheme: 'Common' },
@@ -106,7 +141,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             'Vanilla':        { nameColor: '#000000', iconTint: '#FFF3C2', defaultBg: '#5E4C22', iconTheme: 'Common' }
         };
 
-        const currentLang = document.documentElement.lang || 'ja';
         const translations = {
             ja: { generating: '画像を生成中...', generateDefault: 'この内容で作る？🐕' },
             en: { generating: 'Generating...', generateDefault: 'Generate Card' }
@@ -120,11 +154,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         let userHasManuallyPickedTextColor = false;
         let previousMainJob = '';
 
-
+        // ★修正: パス生成時に /images/ ディレクトリを追加
         const getAssetPath = (options) => {
-        const isEn = currentLang === 'en';
-        let langSuffix = '';
-    
+            let langSuffix = '';
+            
             if (isEn) {
                 if (options.category === 'base') {
                     langSuffix = '_en';
@@ -138,18 +171,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
             }
-    
-    const posSuffix = options.ignorePosition ? '' : (state.position || '_left'); 
-    return `./assets/images/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
-};
+            
+            const posSuffix = options.ignorePosition ? '' : (state.position || '_left'); 
+            return `./assets/images/vertical/${options.category}/${options.filename}${posSuffix}${langSuffix}.webp`;
+        };
 
-const getTemplateAssetPath = (isDownload) => {
-    const isEn = currentLang === 'en';
-    const langSuffix = isEn ? '_en' : '';
-    const cpSuffix = isDownload ? '_cp' : '';
-    const posSuffix = state.position || '_left';
-    return `./assets/images/vertical/base/${state.template}${cpSuffix}${posSuffix}${langSuffix}.webp`;
-};
+        const getTemplateAssetPath = (isDownload) => {
+            const langSuffix = isEn ? '_en' : '';
+            const cpSuffix = isDownload ? '_cp' : '';
+            const posSuffix = state.position || '_left';
+            return `./assets/images/vertical/base/${state.template}${cpSuffix}${posSuffix}${langSuffix}.webp`;
+        };
 
         const loadImage = (src) => {
             if (imageCache[src]) return Promise.resolve(imageCache[src]);
@@ -234,7 +266,7 @@ const getTemplateAssetPath = (isDownload) => {
                      assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: 'Common_progress_all_clear_bg' }));
                 }
             }
-            const playstyleBgNumMap = { leveling: '01', raid: '06', pvp: '03', dd: '14', hunt: '09', map: '08', gatherer: '05', crafter: '07', gil: '02', perform: '10', streaming: '12', glam: '04', studio: '13', housing: '11', screenshot: '15', drawing: '16', roleplay: '17' };
+            
             for (const style of styles) {
                 const bgNum = playstyleBgNumMap[style];
                 if (bgNum) assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: `Common_playstyle_${bgNum}_bg` }));
@@ -361,7 +393,6 @@ const getTemplateAssetPath = (isDownload) => {
                 await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_text', filename: `Common_progress_${pFile}_moji` }), config.iconTint);
             }
 
-            const playstyleBgNumMap = { leveling: '01', raid: '06', pvp: '03', dd: '14', hunt: '09', map: '08', gatherer: '05', crafter: '07', gil: '02', perform: '10', streaming: '12', glam: '04', studio: '13', housing: '11', screenshot: '15', drawing: '16', roleplay: '17' };
             for (const style of state.playstyles) {
                 const bgNum = playstyleBgNumMap[style];
                 if (bgNum) await drawTinted(uiCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_playstyle_${bgNum}_bg` }), getIconBgColor('playstyle'));
