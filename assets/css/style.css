@@ -313,7 +313,7 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 
 /* サイトヘッダー調整 (スペースを確保) */
 .site-header {
-    justify-content: space-between; /* ロゴとメニューを左右に配置 */
+    justify-content: space-between; 
     position: relative;
 }
 
@@ -328,7 +328,7 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
     border: none;
     cursor: pointer;
     padding: 0;
-    z-index: 2100; /* メニューより手前に */
+    z-index: 2100;
 }
 
 .menu-toggle-btn span {
@@ -361,7 +361,7 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     z-index: 2000;
-    transform: translateX(100%); /* 画面外へ隠す */
+    transform: translateX(100%);
     transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
     display: flex;
     justify-content: center;
@@ -375,13 +375,13 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
         box-shadow: -5px 0 15px rgba(0,0,0,0.05);
         border-left: 1px solid var(--border-color);
         justify-content: flex-start;
-        padding-top: 80px; /* ヘッダー分空ける */
+        padding-top: 80px;
         align-items: flex-start;
     }
 }
 
 .menu-open .global-nav {
-    transform: translateX(0); /* 表示 */
+    transform: translateX(0);
 }
 
 .nav-content {
@@ -441,4 +441,39 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 .nav-footer-link a:hover {
     color: var(--primary-color);
     border-bottom-color: var(--primary-color);
+}
+
+/* =========================================
+   Mobile Header Adjustment (スマホ用ヘッダー調整)
+   ========================================= */
+@media (max-width: 768px) {
+    .header-logo {
+        display: none !important;
+    }
+
+    .header-title {
+        font-size: 0.9rem !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        line-height: 1.2;
+    }
+
+    /* 3. レイアウト調整 */
+    .site-header {
+        padding: 0.5rem 1rem !important;
+        align-items: center;
+    }
+
+    .header-logo-link {
+        flex: 1;
+        margin-right: 0.5rem;
+        min-width: 0;
+    }
+
+    /* 4. ハンバーガーボタンを絶対に潰さない */
+    .menu-toggle-btn {
+        flex-shrink: 0;
+        width: 30px;
+    }
 }
