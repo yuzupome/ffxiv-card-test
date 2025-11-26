@@ -524,3 +524,17 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
         z-index: 10;
     }
 }
+
+/* =========================================
+   Mobile Sticky Fix (スマホのプレビュー固定バグ修正)
+   ========================================= */
+@media (max-width: 768px) {
+    .content-wrapper {
+        display: block !important;
+    }
+    
+    .preview-panel {
+        height: auto !important;
+        align-self: auto !important;
+    }
+}
