@@ -11,6 +11,11 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+html {
+    overflow-x: clip;
+    height: 100%;
+}
+
 body {
   font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-color);
@@ -18,13 +23,15 @@ body {
   margin: 0;
   line-height: 1.6;
   padding-bottom: 0;
+  overflow-x: clip;
+  height: 100%;
 }
 
 #app { 
-    display: block; 
-    flex-direction: column; 
-    min-height: 100vh;
-    overflow: visible;
+    display: block !important; 
+    width: 100%;
+    height: auto;
+    overflow: visible !important;
 }
 
 /* --- Loading --- */
@@ -50,9 +57,9 @@ body.generator-page #app { visibility: hidden; }
 /* --- Header & Navigation --- */
 #header-placeholder {
     position: static;
-    height: auto;
     width: 100%;
     z-index: 3000;
+    display: block;
 }
 
 .site-header { 
@@ -65,7 +72,6 @@ body.generator-page #app { visibility: hidden; }
     background-color: rgba(255, 255, 255, 0.85); 
     backdrop-filter: blur(10px); 
     position: relative; 
-    top: auto;
     z-index: 3000; 
 }
 
@@ -124,19 +130,24 @@ body.generator-page #app { visibility: hidden; }
 
 /* --- Layout & Content --- */
 .content-wrapper {
-    padding: 2rem 1rem;
-    max-width: 100%;
+    padding: 0 1rem 2rem 1rem;
+    width: 100%;
     margin: 0 auto;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
+    display: block; 
+    overflow: visible !important;
+    position: relative;
 }
 
 .preview-panel { 
     width: 100%; 
-    position: relative; 
-    z-index: 100; 
+    z-index: 1100;
+    position: -webkit-sticky !important;
+    position: sticky !important; 
+    top: 0 !important;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 0;
+    margin-bottom: 1rem;
 }
 
 .canvas-container { width: 100%; margin: 0 auto; display: flex; justify-content: center; }
@@ -161,7 +172,12 @@ body.generator-page #app { visibility: hidden; }
 
 .vertical-mode .canvas-wrapper { padding-top: 141.18% !important; }
 
-.controls-panel { width: 100%; background-color: var(--bg-color); z-index: 1; }
+.controls-panel { 
+    width: 100%; 
+    background-color: var(--bg-color); 
+    position: relative; 
+    z-index: 1; 
+}
 #controls { display: flex; flex-direction: column; gap: 1.5rem; }
 
 /* --- Media Query: PC (769px+) --- */
@@ -176,6 +192,7 @@ body.generator-page #app { visibility: hidden; }
     }
 
     .content-wrapper { 
+        display: flex !important; 
         flex-direction: row; 
         max-width: 1280px; 
         padding: 2rem; 
@@ -188,10 +205,12 @@ body.generator-page #app { visibility: hidden; }
         min-width: 460px; 
         max-width: 800px; 
         align-self: flex-start; 
-        position: -webkit-sticky;
-        position: sticky; 
         top: 0 !important; 
         z-index: 10; 
+        background-color: transparent;
+        border-bottom: none;
+        padding: 0;
+        margin: 0;
     }
     
     .canvas-wrapper { 
@@ -227,23 +246,9 @@ body.generator-page #app { visibility: hidden; }
     .header-logo-link { flex: 1; margin-right: 0.5rem; min-width: 0; }
     .menu-toggle-btn { flex-shrink: 0; width: 30px; }
 
-    .content-wrapper {
-        display: block !important;
-        height: auto !important;
-    }
-
     .preview-panel {
-        position: -webkit-sticky !important;
-        position: sticky !important; 
-        top: 0 !important;
-        z-index: 1100;
-        background-color: rgba(255, 255, 255, 0.95) !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
-        padding-top: 0.5rem; padding-bottom: 0.5rem;
-        border-bottom: 1px solid var(--border-color);
-        margin-bottom: 1rem;
-        height: auto !important;
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
     
@@ -259,7 +264,7 @@ body.generator-page #app { visibility: hidden; }
     }
 }
 
-/* --- Controls --- */
+/* --- Controls Parts --- */
 .control-section { padding-top: 1.5rem; border-top: 1px solid var(--border-color); }
 #controls > div:first-of-type { border-top: none; padding-top: 0; }
 .section-title { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem 0; color: var(--text-color); }
