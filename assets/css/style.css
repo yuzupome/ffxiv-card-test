@@ -17,7 +17,6 @@ body {
   color: var(--text-color);
   margin: 0;
   line-height: 1.6;
-  overflow-x: hidden;
   padding-bottom: 0;
 }
 
@@ -493,25 +492,35 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 }
 
 /* =========================================
-   Sticky Header & Layout Fixes
+   Sticky Layout Fixes
    ========================================= */
 
 #header-placeholder {
-    position: sticky;
-    top: 0;
-    z-index: 3000;
-    width: 100%;
+    position: static !important;
+    height: auto;
+}
+
+#app {
+    padding-top: 0 !important;
 }
 
 .site-header {
-    position: relative !important; 
+    position: relative !important;
     top: auto !important;
-    z-index: auto !important;
 }
 
 @media (max-width: 768px) {
     .preview-panel {
-        top: 55px !important; 
-        z-index: 1100; 
+        position: sticky !important;
+        top: 0 !important; 
+        z-index: 1100;
+    }
+}
+
+@media (min-width: 769px) {
+    .preview-panel {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 10;
     }
 }
