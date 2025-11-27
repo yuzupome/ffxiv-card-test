@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(state.race) {
                 const raceValue = raceAssetMap[state.race] || state.race;
                 assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: `Common_race_${raceValue}_bg` }));
-                assetsToLoad.add(getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }));
+                assetsToLoad.add(getAssetPath({ category: 'parts_frame', filename: `${config.iconTheme}_race_${raceValue}_frame` }));
             }
             if(state.dc) {
                 const dcTheme = templateName.startsWith('Royal') ? 'Royal' : 'Common';
@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const pFile = state.progress === 'gyougetsu' ? 'gyougetsu' : state.progress;
                 assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: `Common_progress_${state.progress}_bg` }));
                 assetsToLoad.add(getAssetPath({ category: 'parts_text', filename: `Common_progress_${pFile}_moji` }));
-                assetsToLoad.add(getAssetPath({ category: 'parts_frame', filename: `Common_progress_${pFile}_frame` }));
+                assetsToLoad.add(getAssetPath({ category: 'parts_frame', filename: `${config.iconTheme}_progress_${pFile}_frame` }));
                 if (state.progress === 'all_clear') {
                      assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: 'Common_progress_all_clear_bg' }));
                 }
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const raceValue = raceAssetMap[state.race] || state.race;
             if (raceValue) {
                 await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_race_${raceValue}_bg` }), getIconBgColor('race'));
-                await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `Common_race_${raceValue}_frame` }), config.iconTint);
+                await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `${config.iconTheme}_race_${raceValue}_frame` }), config.iconTint);
             }
             
             // Progress
@@ -357,7 +357,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (state.progress === 'all_clear') {
                     for (const s of stages) {
                         await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_progress_${s}_bg` }), getIconBgColor('progress'));
-                        await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `Common_progress_${s}_frame` }), config.iconTint);
+                        await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `${config.iconTheme}_progress_${s}_frame` }), config.iconTint);
                     }
                     await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_bg', filename: 'Common_progress_all_clear_bg' }), getIconBgColor('progress'));
                     await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_frame', filename: 'Common_progress_all_clear_frame' }), config.iconTint);
@@ -366,7 +366,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (idx > -1) {
                         for (let i = 0; i <= idx; i++) {
                             await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_bg', filename: `Common_progress_${stages[i]}_bg` }), getIconBgColor('progress'));
-                            await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `Common_progress_${stages[i]}_frame` }), config.iconTint);
+                            await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `${config.iconTheme}_progress_${stages[i]}_frame` }), config.iconTint);
                         }
                     }
                 }
