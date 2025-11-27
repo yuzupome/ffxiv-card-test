@@ -238,10 +238,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(state.progress) {
                 const pFile = state.progress === 'gyougetsu' ? 'gyougetsu' : state.progress;
                 assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: `Common_progress_${state.progress}_bg` }));
-                assetsToLoad.add(getAssetPath({ category: 'parts_text', filename: `Common_progress_${pFile}_moji` }));
+                assetsToLoad.add(getAssetPath({ category: 'parts_text', filename: `${config.iconTheme}_progress_${pFile}_moji` }));
                 assetsToLoad.add(getAssetPath({ category: 'parts_frame', filename: `${config.iconTheme}_progress_${pFile}_frame` }));
+                
                 if (state.progress === 'all_clear') {
                      assetsToLoad.add(getAssetPath({ category: 'parts_bg', filename: 'Common_progress_all_clear_bg' }));
+                     assetsToLoad.add(getAssetPath({ category: 'parts_frame', filename: `${config.iconTheme}_progress_all_clear_frame` }));
                 }
             }
             
@@ -360,7 +362,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `${config.iconTheme}_progress_${s}_frame` }), config.iconTint);
                     }
                     await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_bg', filename: 'Common_progress_all_clear_bg' }), getIconBgColor('progress'));
-                    await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_frame', filename: 'Common_progress_all_clear_frame' }), config.iconTint);
+                    
+                    // All Clear Frame: Common -> config.iconTheme
+                    await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_frame', filename: `${config.iconTheme}_progress_all_clear_frame` }), config.iconTint);
                 } else {
                     const idx = stages.indexOf(state.progress);
                     if (idx > -1) {
@@ -370,8 +374,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     }
                 }
+
+                // Moji: Common -> config.iconTheme
                 const pFile = state.progress === 'gyougetsu' ? 'gyougetsu' : state.progress;
-                await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_text', filename: `Common_progress_${pFile}_moji` }), config.iconTint);
+                await drawTinted(iconCompositeCtx, getAssetPath({ category: 'parts_text', filename: `${config.iconTheme}_progress_${pFile}_moji` }), config.iconTint);
             }
 
             // Playstyle
