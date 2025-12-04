@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
             square: './assets/images/memories/template_square.webp',
             jan:    './assets/images/memories/template_jan.webp',
             circle: './assets/images/memories/template_circle.webp',
-            moji:   './assets/images/memories/text_overlay.png' // 文字素材はPNG推奨
+            moji:   './assets/images/memories/text_overlay.webp'
         }
     };
 
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
     const app = document.getElementById('app');
     
-    // Inputs (ID修正に対応)
+    // Inputs
     const textColorInput = document.getElementById('text-color');
     const bgColorInput = document.getElementById('bg-color');
     const textureSelect = document.getElementById('texture-select');
@@ -144,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // 修正: IDに対応する変数を更新
         textColorInput.addEventListener('input', (e) => {
             state.textColor = e.target.value;
             draw();
@@ -173,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('touchend', onMouseUp);
     }
 
-    // --- ファイルアップロード処理 (修正済み) ---
+    // --- ファイルアップロード処理 ---
     function handleFileUpload(e) {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
@@ -184,10 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (evt) => {
                 const img = new Image();
                 img.onload = () => {
-                    // 空きスロットを探す
                     const emptyIdx = state.userImages.findIndex(i => i === null);
-                    // 空きがあればそこへ、なければ何もしない（上書きしない安全策）
-                    // 連続アップロード時は空きが埋まっていく
                     if (emptyIdx !== -1) {
                         state.userImages[emptyIdx] = img;
                         state.imageStates[emptyIdx] = { x: 0, y: 0, scale: 1.0 }; 
@@ -200,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             reader.readAsDataURL(file);
         });
-        // 毎回リセットして同じファイルを選べるようにする
         e.target.value = ''; 
     }
 
@@ -227,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 描画ロジック (レイヤー順修正) ---
+    // --- 描画ロジック ---
     function draw() {
         // [Layer 1] 背景色 (枠の色)
         ctx.fillStyle = state.bgColor;
@@ -237,7 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
 
         // [Layer 2] テンプレート画像 (乗算合成)
-        // これで背景色がテンプレートの白い部分(枠)に乗ります。Circleも含めて統一。
         if (state.assets[state.currentTemplate]) {
             ctx.save();
             ctx.globalCompositeOperation = 'multiply';
@@ -246,14 +240,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // [Layer 3] テクスチャ (オーバーレイ)
-        // テンプレートに質感を足すため、画像の前に描画します。
-        // これにより「枠にはテクスチャがかかるが、写真にはかからない」状態になります。
         if (state.texture !== 'none') {
             drawTexture(state.texture);
         }
 
-        // [Layer 4] ユーザー画像 (Normal合成)
-        // テクスチャの上から描画することで、写真の鮮明さを保ちます。
+        // [Layer 4] ユーザー画像
         for (let i = 0; i < 12; i++) {
             const col = i % CONFIG.gridCols;
             const row = Math.floor(i / CONFIG.gridCols);
@@ -261,7 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const cellY = startY + row * (height + gapY);
 
             ctx.save();
-            // 枠の形に切り抜く
             createShapePath(ctx, cellX, cellY, width, height, tmpl.shape, tmpl.radius);
             ctx.clip(); 
 
@@ -269,7 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const img = state.userImages[i];
                 const s = state.imageStates[i];
                 
-                // Cover配置計算
                 const scaleBase = Math.max(width / img.width, height / img.height);
                 const finalScale = scaleBase * s.scale;
                 const drawW = img.width * finalScale;
@@ -279,7 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 ctx.drawImage(img, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
             } else {
-                // プレースホルダー
                 ctx.fillStyle = "rgba(0,0,0,0.1)";
                 ctx.fill();
                 ctx.fillStyle = "rgba(0,0,0,0.2)";
@@ -291,12 +279,13 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.restore();
         }
 
-        // [Layer 5] 文字素材 (最前面・色変更)
+        // [Layer 5] 文字素材
         if (state.assets.moji) {
             drawColoredText(state.assets.moji, state.textColor);
         }
     }
 
+    // ★修正: 透明度を考慮した色変更処理
     function drawColoredText(img, color) {
         const osc = document.createElement('canvas');
         osc.width = CONFIG.width;
@@ -307,12 +296,24 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const idata = octx.getImageData(0, 0, CONFIG.width, CONFIG.height);
         const data = idata.data;
+        
         for(let i = 0; i < data.length; i += 4) {
+            // もともと透明なピクセル(alpha=0)は処理しない
+            const originalAlpha = data[i+3];
+            if (originalAlpha === 0) continue;
+
+            // 輝度（白さ）を計算
             const brightness = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
-            data[i+3] = 255 - brightness;
+            
+            // 白ければ白いほど透明に、黒ければ黒いほど不透明にする（ルミナンスキー）
+            // ただし、もともとの透明度（originalAlpha）を超えないように Math.min を使う
+            // これにより「もともと透明な部分」が「黒と誤認されて不透明になる」のを防ぐ
+            const newAlpha = 255 - brightness;
+            data[i+3] = Math.min(originalAlpha, newAlpha);
         }
         octx.putImageData(idata, 0, 0);
 
+        // 指定色で塗りつぶし (source-in: 不透明な部分だけ色が乗る)
         octx.globalCompositeOperation = 'source-in';
         octx.fillStyle = color;
         octx.fillRect(0, 0, CONFIG.width, CONFIG.height);
@@ -354,7 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.restore();
     }
 
-    // --- 操作ロジック ---
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
