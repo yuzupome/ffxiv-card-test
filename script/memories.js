@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- 設定データ (2400x1350) ---
-    // ★修正: すべての拡張子を .webp に統一しました
     const CONFIG = {
         width: 2400,
         height: 1350,
@@ -11,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
             square: './assets/images/memories/template_square.webp',
             jan:    './assets/images/memories/template_jan.webp',
             circle: './assets/images/memories/template_circle.webp',
-            moji:   './assets/images/memories/text_overlay.webp'
+            moji:   './assets/images/memories/text_overlay.png' // 文字素材はPNG推奨
         }
     };
 
@@ -29,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         circle: {
             layout: { startX: 342, startY: 23, width: 334, height: 630, gapX: 12, gapY: 44 },
-            shape: 'rect',
+            shape: 'rect', 
             radius: 0
         }
     };
@@ -40,8 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
         userImages: new Array(12).fill(null),
         imageStates: [], // { x, y, scale }
         assets: {}, 
-        frameColor: '#ffffff',
-        textColor: '#333333',
+        bgColor: '#ffffff',  // 背景色
+        textColor: '#333333', // 文字色
         texture: 'none',
         isDragging: false,
         dragTargetIndex: -1,
@@ -59,7 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
     const app = document.getElementById('app');
     
-    // Modal Elements
+    // Inputs (ID修正に対応)
+    const textColorInput = document.getElementById('text-color');
+    const bgColorInput = document.getElementById('bg-color');
+    const textureSelect = document.getElementById('texture-select');
+    const saveBtn = document.getElementById('save-btn');
     const saveModal = document.getElementById('saveModal');
     const modalImage = document.getElementById('modalImage');
     const closeModalBtn = document.getElementById('closeModal');
@@ -70,9 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.height = CONFIG.height;
 
         renderThumbnails();
-        setupSortable(); // ★並び替え機能の初期化
+        setupSortable();
 
-        // アセット読み込み
         try {
             await Promise.all([
                 loadAsset('square', CONFIG.assets.square),
@@ -99,33 +101,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
             img.crossOrigin = "Anonymous";
             img.onload = () => { state.assets[key] = img; resolve(); };
-            img.onerror = () => { console.warn(`Missing: ${src}`); resolve(); };
+            img.onerror = () => { 
+                console.warn(`Missing asset: ${src}`); 
+                state.assets[key] = null; 
+                resolve(); 
+            };
             img.src = src;
         });
     }
 
-    // --- ★並び替え機能 (SortableJS) ---
     function setupSortable() {
         if (typeof Sortable !== 'undefined') {
             Sortable.create(thumbnailList, {
                 animation: 150,
                 ghostClass: 'sortable-ghost',
                 onEnd: (evt) => {
-                    // 並び替え後の処理: 配列の中身も入れ替える
                     const oldIndex = evt.oldIndex;
                     const newIndex = evt.newIndex;
-                    
                     if (oldIndex !== newIndex) {
-                        // 画像データの移動
                         const movedImage = state.userImages.splice(oldIndex, 1)[0];
                         state.userImages.splice(newIndex, 0, movedImage);
-                        
-                        // 位置・拡縮設定の移動 (これもしないと、移動先で拡大率がおかしくなる)
                         const movedState = state.imageStates.splice(oldIndex, 1)[0];
                         state.imageStates.splice(newIndex, 0, movedState);
-                        
-                        // 再描画 (サムネイルはSortableがDOMを動かしているので、Canvasだけ更新)
-                        // ただしID振り直しのためrenderThumbnailsも呼んだほうが安全
                         renderThumbnails();
                         draw();
                     }
@@ -147,35 +144,36 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        document.getElementById('frame-color').addEventListener('input', (e) => {
-            state.frameColor = e.target.value;
-            draw();
-        });
-        document.getElementById('text-color').addEventListener('input', (e) => {
+        // 修正: IDに対応する変数を更新
+        textColorInput.addEventListener('input', (e) => {
             state.textColor = e.target.value;
             draw();
         });
-        document.getElementById('texture-select').addEventListener('change', (e) => {
+
+        bgColorInput.addEventListener('input', (e) => {
+            state.bgColor = e.target.value;
+            draw();
+        });
+
+        textureSelect.addEventListener('change', (e) => {
             state.texture = e.target.value;
             draw();
         });
-        document.getElementById('save-btn').addEventListener('click', saveImage);
-        
-        closeModalBtn.addEventListener('click', () => {
-            saveModal.classList.add('hidden');
-        });
 
+        saveBtn.addEventListener('click', saveImage);
+        closeModalBtn.addEventListener('click', () => saveModal.classList.add('hidden'));
+
+        // Canvas操作
         canvas.addEventListener('mousedown', onMouseDown);
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
         canvas.addEventListener('wheel', onWheel, { passive: false });
-        
         canvas.addEventListener('touchstart', onTouchStart, { passive: false });
         canvas.addEventListener('touchmove', onTouchMove, { passive: false });
         window.addEventListener('touchend', onMouseUp);
     }
 
-    // --- ファイル処理 ---
+    // --- ファイルアップロード処理 (修正済み) ---
     function handleFileUpload(e) {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
@@ -186,13 +184,13 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (evt) => {
                 const img = new Image();
                 img.onload = () => {
+                    // 空きスロットを探す
                     const emptyIdx = state.userImages.findIndex(i => i === null);
-                    // 複数選択時は、空きがあればそこへ、なければ現在のロード順の位置へ
-                    const targetIdx = emptyIdx !== -1 ? emptyIdx : (state.userImages.length > loadedCount ? loadedCount : null);
-                    
-                    if (targetIdx !== null && targetIdx < 12) {
-                        state.userImages[targetIdx] = img;
-                        state.imageStates[targetIdx] = { x: 0, y: 0, scale: 1.0 }; 
+                    // 空きがあればそこへ、なければ何もしない（上書きしない安全策）
+                    // 連続アップロード時は空きが埋まっていく
+                    if (emptyIdx !== -1) {
+                        state.userImages[emptyIdx] = img;
+                        state.imageStates[emptyIdx] = { x: 0, y: 0, scale: 1.0 }; 
                         renderThumbnails();
                         draw();
                     }
@@ -202,6 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             reader.readAsDataURL(file);
         });
+        // 毎回リセットして同じファイルを選べるようにする
         e.target.value = ''; 
     }
 
@@ -210,15 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < 12; i++) {
             const div = document.createElement('div');
             div.className = 'thumb-slot' + (state.userImages[i] ? '' : ' empty');
-            // データ属性でインデックスを持たせる（削除時などに使用）
             div.dataset.index = i;
-            
             if (state.userImages[i]) {
                 const img = document.createElement('img');
                 img.src = state.userImages[i].src;
                 div.appendChild(img);
-                
-                // 削除機能: ダブルクリックで削除 (シングルクリックは並び替えの邪魔になるため)
                 div.ondblclick = () => {
                     if(confirm(`${i+1}番目の画像を削除しますか？`)) {
                         state.userImages[i] = null;
@@ -232,25 +227,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 描画ロジック ---
+    // --- 描画ロジック (レイヤー順修正) ---
     function draw() {
-        ctx.fillStyle = state.frameColor;
+        // [Layer 1] 背景色 (枠の色)
+        ctx.fillStyle = state.bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const tmpl = TEMPLATES[state.currentTemplate];
         const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
 
+        // [Layer 2] テンプレート画像 (乗算合成)
+        // これで背景色がテンプレートの白い部分(枠)に乗ります。Circleも含めて統一。
         if (state.assets[state.currentTemplate]) {
             ctx.save();
-            if (state.currentTemplate === 'circle') {
-                ctx.drawImage(state.assets[state.currentTemplate], 0, 0, CONFIG.width, CONFIG.height);
-            } else {
-                ctx.globalCompositeOperation = 'multiply';
-                ctx.drawImage(state.assets[state.currentTemplate], 0, 0, CONFIG.width, CONFIG.height);
-            }
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.drawImage(state.assets[state.currentTemplate], 0, 0, CONFIG.width, CONFIG.height);
             ctx.restore();
         }
 
+        // [Layer 3] テクスチャ (オーバーレイ)
+        // テンプレートに質感を足すため、画像の前に描画します。
+        // これにより「枠にはテクスチャがかかるが、写真にはかからない」状態になります。
+        if (state.texture !== 'none') {
+            drawTexture(state.texture);
+        }
+
+        // [Layer 4] ユーザー画像 (Normal合成)
+        // テクスチャの上から描画することで、写真の鮮明さを保ちます。
         for (let i = 0; i < 12; i++) {
             const col = i % CONFIG.gridCols;
             const row = Math.floor(i / CONFIG.gridCols);
@@ -258,14 +261,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const cellY = startY + row * (height + gapY);
 
             ctx.save();
-            
+            // 枠の形に切り抜く
             createShapePath(ctx, cellX, cellY, width, height, tmpl.shape, tmpl.radius);
-            ctx.clip();
+            ctx.clip(); 
 
             if (state.userImages[i]) {
                 const img = state.userImages[i];
                 const s = state.imageStates[i];
                 
+                // Cover配置計算
                 const scaleBase = Math.max(width / img.width, height / img.height);
                 const finalScale = scaleBase * s.scale;
                 const drawW = img.width * finalScale;
@@ -275,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 ctx.drawImage(img, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
             } else {
+                // プレースホルダー
                 ctx.fillStyle = "rgba(0,0,0,0.1)";
                 ctx.fill();
                 ctx.fillStyle = "rgba(0,0,0,0.2)";
@@ -286,10 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.restore();
         }
 
-        if (state.texture !== 'none') {
-            drawTexture(state.texture);
-        }
-
+        // [Layer 5] 文字素材 (最前面・色変更)
         if (state.assets.moji) {
             drawColoredText(state.assets.moji, state.textColor);
         }

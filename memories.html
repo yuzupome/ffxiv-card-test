@@ -63,7 +63,7 @@
                             <!-- JS will generate thumbnails here -->
                         </div>
                         <p style="font-size:0.75rem; color:#888; margin-top:5px; text-align:right;">
-                            タップで画像を削除
+                            タップで画像を削除 / ドラッグで入替
                         </p>
                     </div>
 
@@ -79,10 +79,11 @@
                     <div class="control-section">
                         <h2 class="section-title">3. Design</h2>
                         
+                        <!-- 修正: 上段を Text Color (文字色) に変更 -->
                         <div class="control-group">
-                            <label>Frame Color (枠の色)</label>
+                            <label>Text Color (文字色)</label>
                             <div class="color-picker-ui">
-                                <input type="color" id="frame-color" value="#ffffff">
+                                <input type="color" id="text-color" value="#333333">
                             </div>
                         </div>
 
@@ -96,10 +97,11 @@
                             </select>
                         </div>
 
+                        <!-- 修正: 下段を Background Color (背景色/枠色) に変更 -->
                         <div class="control-group">
-                            <label>Text Color (文字色)</label>
+                            <label>Background Color (背景色)</label>
                             <div class="color-picker-ui">
-                                <input type="color" id="text-color" value="#333333">
+                                <input type="color" id="bg-color" value="#ffffff">
                             </div>
                         </div>
                     </div>
