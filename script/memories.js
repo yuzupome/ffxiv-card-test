@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 設定データ (2400x1350) ---
+    // --- 設定データ ---
     const CONFIG = {
         width: 2400,
         height: 1350,
@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
             square: './assets/images/memories/template_square.webp',
             jan:    './assets/images/memories/template_jan.webp',
             circle: './assets/images/memories/template_circle.webp',
-            moji:   './assets/images/memories/text_overlay.webp'
+            moji:   './assets/images/memories/text_overlay.png' // 文字素材
         }
     };
 
@@ -37,10 +37,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = {
         currentTemplate: 'square',
         userImages: new Array(12).fill(null),
-        imageStates: [], // { x, y, scale }
+        imageStates: [], 
         assets: {}, 
-        bgColor: '#ffffff',  // 背景色
-        textColor: '#333333', // 文字色
+        bgColor: '#ffffff',
+        textColor: '#333333',
         texture: 'none',
         isDragging: false,
         dragTargetIndex: -1,
@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
     const app = document.getElementById('app');
     
-    // Inputs
     const textColorInput = document.getElementById('text-color');
     const bgColorInput = document.getElementById('bg-color');
     const textureSelect = document.getElementById('texture-select');
@@ -83,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadAsset('moji', CONFIG.assets.moji)
             ]);
         } catch (e) {
-            console.warn('一部の画像の読み込みに失敗しました:', e);
+            console.warn('Load Error:', e);
         }
         
         loader.style.opacity = '0';
@@ -101,11 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const img = new Image();
             img.crossOrigin = "Anonymous";
             img.onload = () => { state.assets[key] = img; resolve(); };
-            img.onerror = () => { 
-                console.warn(`Missing asset: ${src}`); 
-                state.assets[key] = null; 
-                resolve(); 
-            };
+            img.onerror = () => { state.assets[key] = null; resolve(); };
             img.src = src;
         });
     }
@@ -162,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.addEventListener('click', saveImage);
         closeModalBtn.addEventListener('click', () => saveModal.classList.add('hidden'));
 
-        // Canvas操作
         canvas.addEventListener('mousedown', onMouseDown);
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
@@ -172,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('touchend', onMouseUp);
     }
 
-    // --- ファイルアップロード処理 ---
+    // --- ファイル処理 ---
     function handleFileUpload(e) {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
@@ -224,14 +218,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 描画ロジック ---
     function draw() {
-        // [Layer 1] 背景色 (枠の色)
+        // [Layer 1] 背景色
         ctx.fillStyle = state.bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const tmpl = TEMPLATES[state.currentTemplate];
         const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
 
-        // [Layer 2] テンプレート画像 (乗算合成)
+        // [Layer 2] テンプレート画像 (乗算)
         if (state.assets[state.currentTemplate]) {
             ctx.save();
             ctx.globalCompositeOperation = 'multiply';
@@ -279,45 +273,31 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.restore();
         }
 
-        // [Layer 5] 文字素材
+        // [Layer 5] 文字素材 (最前面)
         if (state.assets.moji) {
             drawColoredText(state.assets.moji, state.textColor);
         }
     }
 
-    // ★修正: 透明度を考慮した色変更処理
+    // ★修正版: シンプルな色付け処理
     function drawColoredText(img, color) {
         const osc = document.createElement('canvas');
         osc.width = CONFIG.width;
         osc.height = CONFIG.height;
         const octx = osc.getContext('2d');
 
+        // 1. 元画像をそのまま描画
+        // (透明な部分は透明のまま、白い部分は白いまま描かれる)
         octx.drawImage(img, 0, 0, CONFIG.width, CONFIG.height);
-        
-        const idata = octx.getImageData(0, 0, CONFIG.width, CONFIG.height);
-        const data = idata.data;
-        
-        for(let i = 0; i < data.length; i += 4) {
-            // もともと透明なピクセル(alpha=0)は処理しない
-            const originalAlpha = data[i+3];
-            if (originalAlpha === 0) continue;
 
-            // 輝度（白さ）を計算
-            const brightness = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
-            
-            // 白ければ白いほど透明に、黒ければ黒いほど不透明にする（ルミナンスキー）
-            // ただし、もともとの透明度（originalAlpha）を超えないように Math.min を使う
-            // これにより「もともと透明な部分」が「黒と誤認されて不透明になる」のを防ぐ
-            const newAlpha = 255 - brightness;
-            data[i+3] = Math.min(originalAlpha, newAlpha);
-        }
-        octx.putImageData(idata, 0, 0);
-
-        // 指定色で塗りつぶし (source-in: 不透明な部分だけ色が乗る)
+        // 2. 色を付ける (source-in)
+        // 「描画されている不透明な部分」だけを color で塗りつぶす
+        // 透明な部分は透明のまま維持される
         octx.globalCompositeOperation = 'source-in';
         octx.fillStyle = color;
         octx.fillRect(0, 0, CONFIG.width, CONFIG.height);
 
+        // 3. メインキャンバスに重ねる
         ctx.drawImage(osc, 0, 0);
     }
 
@@ -355,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.restore();
     }
 
+    // --- 操作ロジック ---
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
