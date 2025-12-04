@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 設定データ (2400x1350) ---
+    // --- 設定データ ---
     const CONFIG = {
         width: 2400,
         height: 1350,
@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // テンプレート定義
     const TEMPLATES = {
         square: {
             layout: { startX: 353, startY: 23, width: 316, height: 634, gapX: 27, gapY: 36 },
@@ -37,10 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = {
         currentTemplate: 'square',
         userImages: new Array(12).fill(null),
-        imageStates: [], // { x, y, scale }
+        imageStates: [], 
         assets: {}, 
-        bgColor: '#ffffff',  // 背景色
-        textColor: '#333333', // 文字色
+        bgColor: '#ffffff',
+        textColor: '#333333',
         texture: 'none',
         isDragging: false,
         dragTargetIndex: -1,
@@ -51,28 +50,34 @@ document.addEventListener('DOMContentLoaded', () => {
     for(let i=0; i<12; i++) state.imageStates.push({ x: 0, y: 0, scale: 1.0 });
 
     // --- DOM Elements ---
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const layerImages = document.getElementById('layer-images');
+    const layerTemplate = document.getElementById('layer-template');
+    const layerText = document.getElementById('layer-text');
+    
+    // Contexts
+    const ctxImages = layerImages.getContext('2d');
+    const ctxTemplate = layerTemplate.getContext('2d');
+    const ctxText = layerText.getContext('2d');
+
     const fileInput = document.getElementById('file-input');
     const thumbnailList = document.getElementById('thumbnail-list');
     const loader = document.getElementById('loader');
     const app = document.getElementById('app');
     
-    // Inputs
     const textColorInput = document.getElementById('text-color');
     const bgColorInput = document.getElementById('bg-color');
     const textureSelect = document.getElementById('texture-select');
     const saveBtn = document.getElementById('save-btn');
-    
-    // Modal Elements
     const saveModal = document.getElementById('saveModal');
     const modalImage = document.getElementById('modalImage');
     const closeModalBtn = document.getElementById('closeModal');
 
     // --- 初期化処理 ---
     async function init() {
-        canvas.width = CONFIG.width;
-        canvas.height = CONFIG.height;
+        [layerImages, layerTemplate, layerText].forEach(c => {
+            c.width = CONFIG.width;
+            c.height = CONFIG.height;
+        });
 
         renderThumbnails();
         setupSortable();
@@ -94,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             app.style.visibility = 'visible';
         }, 500);
 
-        draw();
+        redrawAll();
         setupEvents();
     }
 
@@ -122,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const movedState = state.imageStates.splice(oldIndex, 1)[0];
                         state.imageStates.splice(newIndex, 0, movedState);
                         renderThumbnails();
-                        draw();
+                        drawImagesLayer(); // 画像層のみ再描画
                     }
                 }
             });
@@ -138,36 +143,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('.temp-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 state.currentTemplate = e.target.dataset.template;
-                draw();
+                redrawAll();
             });
         });
 
         textColorInput.addEventListener('input', (e) => {
             state.textColor = e.target.value;
-            draw();
+            drawTextLayer();
         });
 
         bgColorInput.addEventListener('input', (e) => {
             state.bgColor = e.target.value;
-            draw();
+            drawTemplateLayer();
         });
 
         textureSelect.addEventListener('change', (e) => {
             state.texture = e.target.value;
-            draw();
+            drawTemplateLayer();
         });
 
         saveBtn.addEventListener('click', saveImage);
         closeModalBtn.addEventListener('click', () => saveModal.classList.add('hidden'));
 
-        // Canvas操作
-        canvas.addEventListener('mousedown', onMouseDown);
+        // 操作イベントは最前面のレイヤー(Text)で受け取るが、
+        // 実際に動かすのは Images レイヤー
+        layerText.addEventListener('mousedown', onMouseDown);
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
-        canvas.addEventListener('wheel', onWheel, { passive: false });
-        
-        canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+        layerText.addEventListener('wheel', onWheel, { passive: false });
+        layerText.addEventListener('touchstart', onTouchStart, { passive: false });
+        layerText.addEventListener('touchmove', onTouchMove, { passive: false });
         window.addEventListener('touchend', onMouseUp);
     }
 
@@ -182,13 +187,12 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (evt) => {
                 const img = new Image();
                 img.onload = () => {
-                    // 空き優先
                     const emptyIdx = state.userImages.findIndex(i => i === null);
                     if (emptyIdx !== -1) {
                         state.userImages[emptyIdx] = img;
                         state.imageStates[emptyIdx] = { x: 0, y: 0, scale: 1.0 }; 
                         renderThumbnails();
-                        draw();
+                        drawImagesLayer();
                     }
                     loadedCount++;
                 };
@@ -214,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         state.userImages[i] = null;
                         state.imageStates[i] = { x: 0, y: 0, scale: 1.0 };
                         renderThumbnails();
-                        draw();
+                        drawImagesLayer();
                     }
                 };
             }
@@ -222,26 +226,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 描画ロジック ---
-    function draw() {
+    // --- 描画ロジック (3層分離) ---
+    
+    function redrawAll() {
+        drawImagesLayer();
+        drawTemplateLayer();
+        drawTextLayer();
+    }
+
+    // 1. ユーザー画像層 (Bottom)
+    function drawImagesLayer() {
+        ctxImages.clearRect(0, 0, CONFIG.width, CONFIG.height);
+        
         const tmpl = TEMPLATES[state.currentTemplate];
         const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
 
-        // 1. [最下層] 背景色
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = state.bgColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 2. [下層] ユーザー画像 (配置 + クリッピング)
         for (let i = 0; i < 12; i++) {
             const col = i % CONFIG.gridCols;
             const row = Math.floor(i / CONFIG.gridCols);
             const cellX = startX + col * (width + gapX);
             const cellY = startY + row * (height + gapY);
 
-            ctx.save();
-            createShapePath(ctx, cellX, cellY, width, height, tmpl.shape, tmpl.radius);
-            ctx.clip(); 
+            ctxImages.save();
+            createShapePath(ctxImages, cellX, cellY, width, height, tmpl.shape, tmpl.radius);
+            ctxImages.clip();
 
             if (state.userImages[i]) {
                 const img = state.userImages[i];
@@ -254,65 +262,79 @@ document.addEventListener('DOMContentLoaded', () => {
                 const centerX = cellX + width / 2 + s.x;
                 const centerY = cellY + height / 2 + s.y;
                 
-                // 画像描画時はNormalモードを明示
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.drawImage(img, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
+                ctxImages.drawImage(img, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
             } else {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.fillStyle = "rgba(0,0,0,0.1)";
-                ctx.fill();
-                ctx.fillStyle = "rgba(0,0,0,0.2)";
-                ctx.font = "bold 60px sans-serif";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(i + 1, cellX + width / 2, cellY + height / 2);
+                // プレースホルダー
+                ctxImages.fillStyle = "rgba(0,0,0,0.1)";
+                ctxImages.fill();
+                ctxImages.fillStyle = "rgba(0,0,0,0.2)";
+                ctxImages.font = "bold 60px sans-serif";
+                ctxImages.textAlign = "center";
+                ctxImages.textBaseline = "middle";
+                ctxImages.fillText(i + 1, cellX + width / 2, cellY + height / 2);
             }
-            ctx.restore();
-        }
-
-        // 3. [中層] テンプレート画像 (乗算)
-        if (state.assets[state.currentTemplate]) {
-            ctx.save();
-            if (state.currentTemplate === 'circle') {
-                ctx.globalCompositeOperation = 'source-over';
-            } else {
-                // Square/Jan (JPG) は乗算
-                ctx.globalCompositeOperation = 'multiply';
-            }
-            ctx.drawImage(state.assets[state.currentTemplate], 0, 0, CONFIG.width, CONFIG.height);
-            ctx.restore();
-        }
-
-        // 4. [上層] テクスチャ (オーバーレイ)
-        if (state.texture !== 'none') {
-            drawTexture(state.texture);
-        }
-
-        // 5. [最前面] 文字素材
-        if (state.assets.moji) {
-            drawColoredText(state.assets.moji, state.textColor);
+            ctxImages.restore();
         }
     }
 
-    // 色付け処理 (透明度維持版)
-    function drawColoredText(img, color) {
+    // 2. テンプレート層 (Middle) - 枠の着色とテクスチャ
+    function drawTemplateLayer() {
+        ctxTemplate.clearRect(0, 0, CONFIG.width, CONFIG.height);
+        
+        const asset = state.assets[state.currentTemplate];
+        if (!asset) return;
+
+        // オフスクリーンで着色処理
         const osc = document.createElement('canvas');
         osc.width = CONFIG.width;
         osc.height = CONFIG.height;
         const octx = osc.getContext('2d');
 
-        // 1. 元画像をそのまま描画
-        octx.drawImage(img, 0, 0, CONFIG.width, CONFIG.height);
+        // A. 元のテンプレートを描画
+        octx.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
 
-        // 2. 不透明部分のみ色を塗る (source-in)
+        // B. 色を重ねる (source-in: 不透明な枠部分だけを塗り替える)
         octx.globalCompositeOperation = 'source-in';
-        octx.fillStyle = color;
+        octx.fillStyle = state.bgColor;
         octx.fillRect(0, 0, CONFIG.width, CONFIG.height);
 
-        // 3. メインキャンバスに通常合成
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.drawImage(osc, 0, 0);
+        // C. テクスチャを重ねる (source-atop: 枠の上だけにテクスチャを乗せる)
+        if (state.texture !== 'none') {
+            octx.globalCompositeOperation = 'source-atop'; 
+            // テクスチャはOverlay合成したいが、Canvas APIでは標準でサポートが弱い
+            // ここではシンプルに半透明で乗せるか、自作関数を使うが
+            // 簡易的に 'source-atop' で乗せて、そのあと globalAlpha で調整して描画する手法をとる
+            drawTextureToContext(octx, state.texture);
+        }
+
+        // メインレイヤーに転写
+        ctxTemplate.drawImage(osc, 0, 0);
     }
+
+    // 3. 文字層 (Top) - 文字の着色
+    function drawTextLayer() {
+        ctxText.clearRect(0, 0, CONFIG.width, CONFIG.height);
+        
+        const asset = state.assets.moji;
+        if (!asset) return;
+
+        const osc = document.createElement('canvas');
+        osc.width = CONFIG.width;
+        osc.height = CONFIG.height;
+        const octx = osc.getContext('2d');
+
+        // 元画像
+        octx.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
+        
+        // 色付け (source-in)
+        octx.globalCompositeOperation = 'source-in';
+        octx.fillStyle = state.textColor;
+        octx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+
+        ctxText.drawImage(osc, 0, 0);
+    }
+
+    // --- ユーティリティ ---
 
     function createShapePath(ctx, x, y, w, h, shape, r) {
         ctx.beginPath();
@@ -328,9 +350,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function drawTexture(type) {
-        ctx.save();
-        ctx.globalCompositeOperation = "overlay";
+    function drawTextureToContext(ctx, type) {
+        // Texture描画用の一時パターン作成
         if (type === 'noise') {
             ctx.fillStyle = "rgba(0,0,0,0.15)";
             for(let i=0; i<CONFIG.height; i+=6) ctx.fillRect(0, i, CONFIG.width, 3);
@@ -345,14 +366,13 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillStyle = grad;
             ctx.fillRect(0,0, CONFIG.width, CONFIG.height);
         }
-        ctx.restore();
     }
 
-    // --- 操作ロジック ---
+    // --- 操作ロジック (Imagesレイヤーを操作) ---
     function getPos(e) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        const rect = layerText.getBoundingClientRect(); // 最前面のレイヤーから座標取得
+        const scaleX = layerText.width / rect.width;
+        const scaleY = layerText.height / rect.height;
         return {
             x: (e.clientX - rect.left) * scaleX,
             y: (e.clientY - rect.top) * scaleY
@@ -380,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.dragTargetIndex = idx;
             state.lastMouseX = p.x;
             state.lastMouseY = p.y;
-            canvas.style.cursor = 'grabbing';
+            layerText.style.cursor = 'grabbing';
         }
     }
     function onMouseMove(e) {
@@ -393,11 +413,12 @@ document.addEventListener('DOMContentLoaded', () => {
         s.y += dy;
         state.lastMouseX = p.x;
         state.lastMouseY = p.y;
-        requestAnimationFrame(draw);
+        
+        requestAnimationFrame(drawImagesLayer); // 画像層のみ再描画
     }
     function onMouseUp() {
         state.isDragging = false;
-        canvas.style.cursor = 'grab';
+        layerText.style.cursor = 'grab';
     }
     function onWheel(e) {
         e.preventDefault();
@@ -407,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const s = state.imageStates[idx];
             s.scale += e.deltaY * -0.001;
             s.scale = Math.max(0.1, s.scale); 
-            requestAnimationFrame(draw);
+            requestAnimationFrame(drawImagesLayer);
         }
     }
 
@@ -444,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (initialPinchDist > 0) {
                 const scale = (dist / initialPinchDist) * initialScale;
                 state.imageStates[state.dragTargetIndex].scale = Math.max(0.1, scale);
-                requestAnimationFrame(draw);
+                requestAnimationFrame(drawImagesLayer);
             }
         }
     }
@@ -456,7 +477,17 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
 
         try {
-            const imageUrl = canvas.toDataURL('image/jpeg', 0.95);
+            // 保存用に3枚のCanvasを1枚に統合
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = CONFIG.width;
+            finalCanvas.height = CONFIG.height;
+            const fctx = finalCanvas.getContext('2d');
+
+            fctx.drawImage(layerImages, 0, 0);
+            fctx.drawImage(layerTemplate, 0, 0);
+            fctx.drawImage(layerText, 0, 0);
+
+            const imageUrl = finalCanvas.toDataURL('image/jpeg', 0.95);
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
             if (isIOS) {

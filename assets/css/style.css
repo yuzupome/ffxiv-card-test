@@ -379,6 +379,10 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
     background-color: #fff;
 }
 
+.canvas-wrapper.memories-mode canvas {
+    display: block;
+}
+
 /* Template Selector Buttons */
 .template-grid { 
     display: grid; 

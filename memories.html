@@ -30,7 +30,7 @@
     </div>
 
     <div id="app" style="visibility: hidden;">
-        <!-- Header Placeholder (Loaded by common.js) -->
+        <!-- Header Placeholder -->
         <div id="header-placeholder"></div>
 
         <div class="content-wrapper">
@@ -39,7 +39,10 @@
             <main class="preview-panel">
                 <div class="canvas-container">
                     <div class="canvas-wrapper memories-mode">
-                        <canvas id="canvas"></canvas>
+                        <!-- 3層レイヤー構造 -->
+                        <canvas id="layer-images"></canvas>
+                        <canvas id="layer-template"></canvas>
+                        <canvas id="layer-text"></canvas>
                     </div>
                 </div>
                 <p style="text-align: center; font-size: 0.85rem; color: #999; margin-top: 0.5rem;">
@@ -79,7 +82,6 @@
                     <div class="control-section">
                         <h2 class="section-title">3. Design</h2>
                         
-                        <!-- 修正: 上段を Text Color (文字色) に変更 -->
                         <div class="control-group">
                             <label>Text Color (文字色)</label>
                             <div class="color-picker-ui">
@@ -97,9 +99,8 @@
                             </select>
                         </div>
 
-                        <!-- 修正: 下段を Background Color (背景色/枠色) に変更 -->
                         <div class="control-group">
-                            <label>Background Color (背景色)</label>
+                            <label>Background Color (枠の色)</label>
                             <div class="color-picker-ui">
                                 <input type="color" id="bg-color" value="#ffffff">
                             </div>
@@ -115,10 +116,10 @@
             </aside>
         </div>
 
-        <!-- Footer Placeholder (Loaded by common.js) -->
+        <!-- Footer Placeholder -->
         <div id="footer-placeholder"></div>
         
-        <!-- Save Modal (iOS Support) -->
+        <!-- Save Modal -->
         <div id="saveModal" class="modal-overlay hidden">
             <div class="modal-content">
                 <button id="closeModal" class="close-button">&times;</button>
