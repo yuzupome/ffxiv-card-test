@@ -37,10 +37,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = {
         currentTemplate: 'square',
         userImages: new Array(12).fill(null),
-        imageStates: [], 
+        imageStates: [], // { x, y, scale }
         assets: {}, 
-        bgColor: '#ffffff',
-        textColor: '#333333',
+        bgColor: '#ffffff',  // 背景色
+        textColor: '#333333', // 文字色
         texture: 'none',
         isDragging: false,
         dragTargetIndex: -1,
@@ -58,10 +58,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
     const app = document.getElementById('app');
     
+    // Inputs
     const textColorInput = document.getElementById('text-color');
     const bgColorInput = document.getElementById('bg-color');
     const textureSelect = document.getElementById('texture-select');
     const saveBtn = document.getElementById('save-btn');
+    
+    // Modal Elements
     const saveModal = document.getElementById('saveModal');
     const modalImage = document.getElementById('modalImage');
     const closeModalBtn = document.getElementById('closeModal');
@@ -157,10 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.addEventListener('click', saveImage);
         closeModalBtn.addEventListener('click', () => saveModal.classList.add('hidden'));
 
+        // Canvas操作
         canvas.addEventListener('mousedown', onMouseDown);
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
         canvas.addEventListener('wheel', onWheel, { passive: false });
+        
         canvas.addEventListener('touchstart', onTouchStart, { passive: false });
         canvas.addEventListener('touchmove', onTouchMove, { passive: false });
         window.addEventListener('touchend', onMouseUp);
@@ -177,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = (evt) => {
                 const img = new Image();
                 img.onload = () => {
+                    // 空き優先
                     const emptyIdx = state.userImages.findIndex(i => i === null);
                     if (emptyIdx !== -1) {
                         state.userImages[emptyIdx] = img;
@@ -221,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tmpl = TEMPLATES[state.currentTemplate];
         const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
 
-        // 1. [最下層] 背景色 (Canvas全体)
+        // 1. [最下層] 背景色
         ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = state.bgColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -234,9 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const cellY = startY + row * (height + gapY);
 
             ctx.save();
-            // ここで枠の形に切り抜いてから画像を描画
             createShapePath(ctx, cellX, cellY, width, height, tmpl.shape, tmpl.radius);
-            ctx.clip();
+            ctx.clip(); 
 
             if (state.userImages[i]) {
                 const img = state.userImages[i];
@@ -249,9 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const centerX = cellX + width / 2 + s.x;
                 const centerY = cellY + height / 2 + s.y;
                 
+                // 画像描画時はNormalモードを明示
+                ctx.globalCompositeOperation = 'source-over';
                 ctx.drawImage(img, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
             } else {
-                // 画像がない場所のプレースホルダー
+                ctx.globalCompositeOperation = 'source-over';
                 ctx.fillStyle = "rgba(0,0,0,0.1)";
                 ctx.fill();
                 ctx.fillStyle = "rgba(0,0,0,0.2)";
@@ -263,12 +270,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.restore();
         }
 
-        // 3. [中層] テンプレート画像 (乗算合成)
-        // 乗算(multiply)にすることで、白背景は透明になり、枠線や影が下の画像に乗る
+        // 3. [中層] テンプレート画像 (乗算)
         if (state.assets[state.currentTemplate]) {
             ctx.save();
             if (state.currentTemplate === 'circle') {
-                // Circle (透過PNG) はそのまま描画
                 ctx.globalCompositeOperation = 'source-over';
             } else {
                 // Square/Jan (JPG) は乗算
@@ -283,24 +288,23 @@ document.addEventListener('DOMContentLoaded', () => {
             drawTexture(state.texture);
         }
 
-        // 5. [最前面] 文字素材 (色変更)
+        // 5. [最前面] 文字素材
         if (state.assets.moji) {
             drawColoredText(state.assets.moji, state.textColor);
         }
     }
 
-    // ★修正版: 透明度を維持した単純な色付け処理
+    // 色付け処理 (透明度維持版)
     function drawColoredText(img, color) {
         const osc = document.createElement('canvas');
         osc.width = CONFIG.width;
         osc.height = CONFIG.height;
         const octx = osc.getContext('2d');
 
-        // 1. 元画像をそのまま描画 (透明な部分は透明のまま)
+        // 1. 元画像をそのまま描画
         octx.drawImage(img, 0, 0, CONFIG.width, CONFIG.height);
 
-        // 2. 指定色で塗りつぶし (source-in)
-        // 「不透明な部分（文字）」だけがこの色になり、透明部分は維持される
+        // 2. 不透明部分のみ色を塗る (source-in)
         octx.globalCompositeOperation = 'source-in';
         octx.fillStyle = color;
         octx.fillRect(0, 0, CONFIG.width, CONFIG.height);
