@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 設定データ ---
+    // --- 設定データ (2400x1350) ---
     const CONFIG = {
         width: 2400,
         height: 1350,
@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
             square: './assets/images/memories/template_square.webp',
             jan:    './assets/images/memories/template_jan.webp',
             circle: './assets/images/memories/template_circle.webp',
-            moji:   './assets/images/memories/text_overlay.png' // 文字素材
+            moji:   './assets/images/memories/text_overlay.webp'
         }
     };
 
@@ -218,27 +218,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 描画ロジック ---
     function draw() {
-        // [Layer 1] 背景色
-        ctx.fillStyle = state.bgColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         const tmpl = TEMPLATES[state.currentTemplate];
         const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
 
-        // [Layer 2] テンプレート画像 (乗算)
-        if (state.assets[state.currentTemplate]) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'multiply';
-            ctx.drawImage(state.assets[state.currentTemplate], 0, 0, CONFIG.width, CONFIG.height);
-            ctx.restore();
-        }
+        // 1. [最下層] 背景色 (Canvas全体)
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = state.bgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // [Layer 3] テクスチャ (オーバーレイ)
-        if (state.texture !== 'none') {
-            drawTexture(state.texture);
-        }
-
-        // [Layer 4] ユーザー画像
+        // 2. [下層] ユーザー画像 (配置 + クリッピング)
         for (let i = 0; i < 12; i++) {
             const col = i % CONFIG.gridCols;
             const row = Math.floor(i / CONFIG.gridCols);
@@ -246,8 +234,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const cellY = startY + row * (height + gapY);
 
             ctx.save();
+            // ここで枠の形に切り抜いてから画像を描画
             createShapePath(ctx, cellX, cellY, width, height, tmpl.shape, tmpl.radius);
-            ctx.clip(); 
+            ctx.clip();
 
             if (state.userImages[i]) {
                 const img = state.userImages[i];
@@ -262,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 ctx.drawImage(img, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
             } else {
+                // 画像がない場所のプレースホルダー
                 ctx.fillStyle = "rgba(0,0,0,0.1)";
                 ctx.fill();
                 ctx.fillStyle = "rgba(0,0,0,0.2)";
@@ -273,31 +263,50 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.restore();
         }
 
-        // [Layer 5] 文字素材 (最前面)
+        // 3. [中層] テンプレート画像 (乗算合成)
+        // 乗算(multiply)にすることで、白背景は透明になり、枠線や影が下の画像に乗る
+        if (state.assets[state.currentTemplate]) {
+            ctx.save();
+            if (state.currentTemplate === 'circle') {
+                // Circle (透過PNG) はそのまま描画
+                ctx.globalCompositeOperation = 'source-over';
+            } else {
+                // Square/Jan (JPG) は乗算
+                ctx.globalCompositeOperation = 'multiply';
+            }
+            ctx.drawImage(state.assets[state.currentTemplate], 0, 0, CONFIG.width, CONFIG.height);
+            ctx.restore();
+        }
+
+        // 4. [上層] テクスチャ (オーバーレイ)
+        if (state.texture !== 'none') {
+            drawTexture(state.texture);
+        }
+
+        // 5. [最前面] 文字素材 (色変更)
         if (state.assets.moji) {
             drawColoredText(state.assets.moji, state.textColor);
         }
     }
 
-    // ★修正版: シンプルな色付け処理
+    // ★修正版: 透明度を維持した単純な色付け処理
     function drawColoredText(img, color) {
         const osc = document.createElement('canvas');
         osc.width = CONFIG.width;
         osc.height = CONFIG.height;
         const octx = osc.getContext('2d');
 
-        // 1. 元画像をそのまま描画
-        // (透明な部分は透明のまま、白い部分は白いまま描かれる)
+        // 1. 元画像をそのまま描画 (透明な部分は透明のまま)
         octx.drawImage(img, 0, 0, CONFIG.width, CONFIG.height);
 
-        // 2. 色を付ける (source-in)
-        // 「描画されている不透明な部分」だけを color で塗りつぶす
-        // 透明な部分は透明のまま維持される
+        // 2. 指定色で塗りつぶし (source-in)
+        // 「不透明な部分（文字）」だけがこの色になり、透明部分は維持される
         octx.globalCompositeOperation = 'source-in';
         octx.fillStyle = color;
         octx.fillRect(0, 0, CONFIG.width, CONFIG.height);
 
-        // 3. メインキャンバスに重ねる
+        // 3. メインキャンバスに通常合成
+        ctx.globalCompositeOperation = 'source-over';
         ctx.drawImage(osc, 0, 0);
     }
 
