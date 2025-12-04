@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 設定データ ---
+    // --- 1. 設定データ ---
     const CONFIG = {
         width: 2400,
         height: 1350,
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- 状態管理 ---
+    // --- 2. 状態管理 ---
     const state = {
         currentTemplate: 'square',
         userImages: new Array(12).fill(null),
@@ -44,22 +44,23 @@ document.addEventListener('DOMContentLoaded', () => {
         isDragging: false,
         dragTargetIndex: -1,
         lastMouseX: 0,
-        lastMouseY: 0
+        lastMouseY: 0,
+        targetUploadIndex: -1 // 追加: 個別アップロード対象のインデックス
     };
 
     for(let i=0; i<12; i++) state.imageStates.push({ x: 0, y: 0, scale: 1.0 });
 
-    // --- DOM Elements ---
+    // --- 3. DOM要素 & Canvas Contexts ---
     const layerImages = document.getElementById('layer-images');
     const layerTemplate = document.getElementById('layer-template');
     const layerText = document.getElementById('layer-text');
     
-    // Contexts
     const ctxImages = layerImages.getContext('2d');
     const ctxTemplate = layerTemplate.getContext('2d');
     const ctxText = layerText.getContext('2d');
 
     const fileInput = document.getElementById('file-input');
+    const singleFileInput = document.getElementById('single-file-input'); // 追加
     const thumbnailList = document.getElementById('thumbnail-list');
     const loader = document.getElementById('loader');
     const app = document.getElementById('app');
@@ -72,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalImage = document.getElementById('modalImage');
     const closeModalBtn = document.getElementById('closeModal');
 
-    // --- 初期化処理 ---
+    // --- 4. 初期化処理 ---
     async function init() {
         [layerImages, layerTemplate, layerText].forEach(c => {
             c.width = CONFIG.width;
@@ -118,25 +119,39 @@ document.addEventListener('DOMContentLoaded', () => {
             Sortable.create(thumbnailList, {
                 animation: 150,
                 ghostClass: 'sortable-ghost',
+                delay: 200, // スマホでのスクロール誤爆防止
+                delayOnTouchOnly: true,
+                // 【要望4対応】 Swapロジックの実装
                 onEnd: (evt) => {
                     const oldIndex = evt.oldIndex;
                     const newIndex = evt.newIndex;
-                    if (oldIndex !== newIndex) {
-                        const movedImage = state.userImages.splice(oldIndex, 1)[0];
-                        state.userImages.splice(newIndex, 0, movedImage);
-                        const movedState = state.imageStates.splice(oldIndex, 1)[0];
-                        state.imageStates.splice(newIndex, 0, movedState);
-                        renderThumbnails();
-                        drawImagesLayer(); // 画像層のみ再描画
-                    }
+                    
+                    if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+
+                    // 配列操作: InsertではなくSwap（交換）を行う
+                    // 1. 画像データの交換
+                    const tempImg = state.userImages[oldIndex];
+                    state.userImages[oldIndex] = state.userImages[newIndex];
+                    state.userImages[newIndex] = tempImg;
+
+                    // 2. 位置調整データ(scale/x/y)も交換
+                    const tempState = state.imageStates[oldIndex];
+                    state.imageStates[oldIndex] = state.imageStates[newIndex];
+                    state.imageStates[newIndex] = tempState;
+
+                    // 重要: SortableJSはDOMを「移動」してしまっているので、
+                    // Swap後の正しいデータ順序でDOMを再描画して整合性を取る
+                    renderThumbnails();
+                    drawImagesLayer();
                 }
             });
         }
     }
 
-    // --- イベント設定 ---
+    // --- 5. イベント設定 ---
     function setupEvents() {
         fileInput.addEventListener('change', handleFileUpload);
+        singleFileInput.addEventListener('change', handleSingleFileUpload); // 追加
 
         document.querySelectorAll('.temp-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -165,8 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveBtn.addEventListener('click', saveImage);
         closeModalBtn.addEventListener('click', () => saveModal.classList.add('hidden'));
 
-        // 操作イベントは最前面のレイヤー(Text)で受け取るが、
-        // 実際に動かすのは Images レイヤー
         layerText.addEventListener('mousedown', onMouseDown);
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
@@ -176,7 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('touchend', onMouseUp);
     }
 
-    // --- ファイル処理 ---
+    // --- 6. ファイル処理 ---
+    
+    // 一括アップロード (既存)
     function handleFileUpload(e) {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
@@ -203,17 +218,51 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.value = ''; 
     }
 
+    // 【要望3対応】個別アップロード処理
+    function handleSingleFileUpload(e) {
+        const file = e.target.files[0];
+        if (!file || state.targetUploadIndex === -1) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            const img = new Image();
+            img.onload = () => {
+                const idx = state.targetUploadIndex;
+                state.userImages[idx] = img;
+                state.imageStates[idx] = { x: 0, y: 0, scale: 1.0 }; // 位置リセット
+                
+                renderThumbnails();
+                drawImagesLayer();
+                state.targetUploadIndex = -1; // indexリセット
+            };
+            img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    }
+
     function renderThumbnails() {
         thumbnailList.innerHTML = '';
         for (let i = 0; i < 12; i++) {
             const div = document.createElement('div');
             div.className = 'thumb-slot' + (state.userImages[i] ? '' : ' empty');
             div.dataset.index = i;
+            div.dataset.month = i + 1; // 【要望2対応】CSSで数字を表示するための属性
+
+            // 【要望3対応】クリックでアップロード
+            div.onclick = () => {
+                state.targetUploadIndex = i;
+                singleFileInput.click();
+            };
+
             if (state.userImages[i]) {
                 const img = document.createElement('img');
                 img.src = state.userImages[i].src;
                 div.appendChild(img);
-                div.ondblclick = () => {
+                
+                // ダブルクリックで削除 (PC向け補助機能として残す)
+                div.ondblclick = (e) => {
+                    e.stopPropagation(); // Clickイベントの伝播を止める
                     if(confirm(`${i+1}番目の画像を削除しますか？`)) {
                         state.userImages[i] = null;
                         state.imageStates[i] = { x: 0, y: 0, scale: 1.0 };
@@ -226,15 +275,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 描画ロジック (3層分離) ---
-    
+    // --- 7. 描画ロジック (変更なし/省略可だが文脈維持のため記載) ---
     function redrawAll() {
         drawImagesLayer();
         drawTemplateLayer();
         drawTextLayer();
     }
 
-    // 1. ユーザー画像層 (Bottom)
     function drawImagesLayer() {
         ctxImages.clearRect(0, 0, CONFIG.width, CONFIG.height);
         
@@ -254,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state.userImages[i]) {
                 const img = state.userImages[i];
                 const s = state.imageStates[i];
-                
                 const scaleBase = Math.max(width / img.width, height / img.height);
                 const finalScale = scaleBase * s.scale;
                 const drawW = img.width * finalScale;
@@ -264,8 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 ctxImages.drawImage(img, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
             } else {
-                // プレースホルダー
-                ctxImages.fillStyle = "rgba(0,0,0,0.1)";
+                ctxImages.fillStyle = "#eeeeee"; 
                 ctxImages.fill();
                 ctxImages.fillStyle = "rgba(0,0,0,0.2)";
                 ctxImages.font = "bold 60px sans-serif";
@@ -277,65 +322,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 2. テンプレート層 (Middle) - 枠の着色とテクスチャ
     function drawTemplateLayer() {
         ctxTemplate.clearRect(0, 0, CONFIG.width, CONFIG.height);
-        
+        ctxTemplate.fillStyle = state.bgColor;
+        ctxTemplate.fillRect(0, 0, CONFIG.width, CONFIG.height);
         const asset = state.assets[state.currentTemplate];
-        if (!asset) return;
-
-        // オフスクリーンで着色処理
-        const osc = document.createElement('canvas');
-        osc.width = CONFIG.width;
-        osc.height = CONFIG.height;
-        const octx = osc.getContext('2d');
-
-        // A. 元のテンプレートを描画
-        octx.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
-
-        // B. 色を重ねる (source-in: 不透明な枠部分だけを塗り替える)
-        octx.globalCompositeOperation = 'source-in';
-        octx.fillStyle = state.bgColor;
-        octx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-
-        // C. テクスチャを重ねる (source-atop: 枠の上だけにテクスチャを乗せる)
-        if (state.texture !== 'none') {
-            octx.globalCompositeOperation = 'source-atop'; 
-            // テクスチャはOverlay合成したいが、Canvas APIでは標準でサポートが弱い
-            // ここではシンプルに半透明で乗せるか、自作関数を使うが
-            // 簡易的に 'source-atop' で乗せて、そのあと globalAlpha で調整して描画する手法をとる
-            drawTextureToContext(octx, state.texture);
+        if (asset) {
+            ctxTemplate.save();
+            if (state.currentTemplate === 'circle') {
+                ctxTemplate.globalCompositeOperation = 'source-over';
+            } else {
+                ctxTemplate.globalCompositeOperation = 'multiply';
+            }
+            ctxTemplate.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
+            ctxTemplate.restore();
         }
-
-        // メインレイヤーに転写
-        ctxTemplate.drawImage(osc, 0, 0);
+        if (state.texture !== 'none') {
+            ctxTemplate.save();
+            ctxTemplate.globalCompositeOperation = 'overlay'; 
+            drawTextureToContext(ctxTemplate, state.texture);
+            ctxTemplate.restore();
+        }
     }
 
-    // 3. 文字層 (Top) - 文字の着色
     function drawTextLayer() {
         ctxText.clearRect(0, 0, CONFIG.width, CONFIG.height);
-        
         const asset = state.assets.moji;
         if (!asset) return;
-
         const osc = document.createElement('canvas');
         osc.width = CONFIG.width;
         osc.height = CONFIG.height;
         const octx = osc.getContext('2d');
-
-        // 元画像
         octx.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
-        
-        // 色付け (source-in)
         octx.globalCompositeOperation = 'source-in';
         octx.fillStyle = state.textColor;
         octx.fillRect(0, 0, CONFIG.width, CONFIG.height);
-
         ctxText.drawImage(osc, 0, 0);
     }
 
     // --- ユーティリティ ---
-
     function createShapePath(ctx, x, y, w, h, shape, r) {
         ctx.beginPath();
         if (shape === 'cut') {
@@ -351,7 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawTextureToContext(ctx, type) {
-        // Texture描画用の一時パターン作成
         if (type === 'noise') {
             ctx.fillStyle = "rgba(0,0,0,0.15)";
             for(let i=0; i<CONFIG.height; i+=6) ctx.fillRect(0, i, CONFIG.width, 3);
@@ -368,9 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 操作ロジック (Imagesレイヤーを操作) ---
+    // --- 8. 操作ロジック ---
     function getPos(e) {
-        const rect = layerText.getBoundingClientRect(); // 最前面のレイヤーから座標取得
+        const rect = layerText.getBoundingClientRect();
         const scaleX = layerText.width / rect.width;
         const scaleY = layerText.height / rect.height;
         return {
@@ -413,8 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
         s.y += dy;
         state.lastMouseX = p.x;
         state.lastMouseY = p.y;
-        
-        requestAnimationFrame(drawImagesLayer); // 画像層のみ再描画
+        requestAnimationFrame(drawImagesLayer); 
     }
     function onMouseUp() {
         state.isDragging = false;
@@ -434,7 +457,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let initialPinchDist = 0;
     let initialScale = 1;
-    
     function onTouchStart(e) {
         if (e.touches.length === 1) {
             const t = e.touches[0];
@@ -452,7 +474,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
     function onTouchMove(e) {
         e.preventDefault();
         if (e.touches.length === 1) {
@@ -470,6 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- 9. 保存処理 ---
     async function saveImage() {
         const btn = document.getElementById('save-btn');
         const originalText = btn.innerHTML;
@@ -477,15 +499,13 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
 
         try {
-            // 保存用に3枚のCanvasを1枚に統合
             const finalCanvas = document.createElement('canvas');
             finalCanvas.width = CONFIG.width;
             finalCanvas.height = CONFIG.height;
             const fctx = finalCanvas.getContext('2d');
-
-            fctx.drawImage(layerImages, 0, 0);
-            fctx.drawImage(layerTemplate, 0, 0);
-            fctx.drawImage(layerText, 0, 0);
+            fctx.drawImage(layerImages, 0, 0);   
+            fctx.drawImage(layerTemplate, 0, 0); 
+            fctx.drawImage(layerText, 0, 0);     
 
             const imageUrl = finalCanvas.toDataURL('image/jpeg', 0.95);
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;

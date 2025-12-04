@@ -369,14 +369,8 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 
 /* 16:9 Aspect Ratio for Memories Generator */
 .canvas-wrapper.memories-mode {
-    padding-top: 56.25% !important; /* 16:9 */
-    background-image: 
-        linear-gradient(45deg, #e0e0e0 25%, transparent 25%), 
-        linear-gradient(-45deg, #e0e0e0 25%, transparent 25%), 
-        linear-gradient(45deg, transparent 75%, #e0e0e0 75%), 
-        linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
-    background-size: 20px 20px;
-    background-color: #fff;
+    padding-top: 56.25% !important;
+    background: #e5e5e5; 
 }
 
 .canvas-wrapper.memories-mode canvas {
@@ -426,12 +420,30 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
     overflow: hidden; 
     position: relative;
     cursor: pointer;
+    touch-action: manipulation;
 }
 .thumb-slot img { 
     width: 100%; 
     height: 100%; 
     object-fit: cover; 
+    pointer-events: none;
 }
+
+/* 要望2: 左上の数字ラベル (::beforeを使用) */
+.thumb-slot::before {
+    content: attr(data-month);
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    z-index: 5;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    pointer-events: none;
+}
+
+/* 空のスロットの＋マーク */
 .thumb-slot.empty::after { 
     content: '+'; 
     position: absolute; 
