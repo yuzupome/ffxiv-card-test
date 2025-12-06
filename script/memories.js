@@ -324,8 +324,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawTemplateLayer() {
         ctxTemplate.clearRect(0, 0, CONFIG.width, CONFIG.height);
+        
         ctxTemplate.fillStyle = state.bgColor;
         ctxTemplate.fillRect(0, 0, CONFIG.width, CONFIG.height);
+        
         const asset = state.assets[state.currentTemplate];
         if (asset) {
             ctxTemplate.save();
@@ -337,6 +339,24 @@ document.addEventListener('DOMContentLoaded', () => {
             ctxTemplate.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
             ctxTemplate.restore();
         }
+        
+        ctxTemplate.save();
+        ctxTemplate.globalCompositeOperation = 'destination-out';
+
+        const tmpl = TEMPLATES[state.currentTemplate];
+        const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
+
+        for (let i = 0; i < 12; i++) {
+            const col = i % CONFIG.gridCols;
+            const row = Math.floor(i / CONFIG.gridCols);
+            const cellX = startX + col * (width + gapX);
+            const cellY = startY + row * (height + gapY);
+
+            createShapePath(ctxTemplate, cellX, cellY, width, height, tmpl.shape, tmpl.radius);
+            ctxTemplate.fill(); 
+        }
+        ctxTemplate.restore();
+
         if (state.texture !== 'none') {
             ctxTemplate.save();
             ctxTemplate.globalCompositeOperation = 'overlay'; 
