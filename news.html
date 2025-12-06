@@ -153,39 +153,58 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             text-align: center;
         }
 
-        /* --- 特設バナーボタン --- */
+        /* --- 特設バナーボタン（修正版：矢印なし・中央揃え） --- */
         .special-banner-link {
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* 縦並びに戻して中央揃え */
             align-items: center;
             justify-content: center;
             width: 100%;
             max-width: 600px;
             margin: 0 auto 3rem auto;
             padding: 1.5rem;
-            background: linear-gradient(135deg, #fff 0%, var(--surface-color) 100%);
+            
+            /* 背景: ほんのり色をつけてボタン感を維持 */
+            background-color: #fffbf5;
             border: 2px solid var(--accent-color);
             border-radius: 16px;
+            
             text-decoration: none;
             color: var(--text-color);
             position: relative;
-            box-shadow: 0 4px 15px rgba(242, 178, 107, 0.15);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
             overflow: hidden;
+            
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .special-banner-link:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(242, 178, 107, 0.3);
-            background: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(242, 178, 107, 0.3);
+            background-color: #fff;
+        }
+
+        .special-banner-link:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: var(--surface-color);
+        }
+
+        .banner-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* 中央揃え */
+            text-align: center;
         }
 
         .special-title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 700;
             color: var(--text-color);
-            line-height: 1.2;
+            line-height: 1.3;
             margin-bottom: 0.3rem;
             letter-spacing: 0.05em;
         }
@@ -197,36 +216,38 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             font-weight: 500;
         }
 
+        /* NEWバッジ（サイズと位置を元に戻す） */
         .new-badge {
             position: absolute;
             top: 0;
-            right: 0;
+            right: 0; /* 右上に戻す */
             background-color: var(--accent-color);
             color: #fff;
-            font-size: 0.75rem;
+            font-size: 0.7rem; /* 小さく戻す */
             font-weight: bold;
             padding: 0.3rem 0.8rem;
-            border-bottom-left-radius: 8px;
+            border-bottom-left-radius: 8px; /* 左下を丸く */
             font-family: 'Orbitron', sans-serif;
         }
 
-        /* How to Use */
-        .how-to-use-section {
+        /* 期間限定ラベル */
+        .limited-label {
             text-align: center;
-            margin-top: 3rem;
-        }
-        .how-to-use-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.1rem;
-            color: var(--text-secondary-color);
-            margin-bottom: 1rem;
-        }
-        .how-to-use-gif {
-            max-width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            color: var(--accent-color);
+            font-weight: bold;
+            font-family: 'Orbitron', 'Noto Sans JP', sans-serif;
+            font-size: 0.9rem;
+            margin: 0 auto 0.5rem auto;
+            letter-spacing: 0.05em;
+            animation: floatLabel 2s ease-in-out infinite;
         }
 
+        @keyframes floatLabel {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* スマホ調整 */
         @media (max-width: 767px) {
             .generator-links {
                 flex-direction: column;
@@ -239,7 +260,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             }
             .special-banner-link {
                 padding: 1.2rem;
-                margin-bottom: 2.5rem;
             }
             .special-title {
                 font-size: 1.2rem;
@@ -260,9 +280,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <div class="banner-content">
                 <span class="special-title">2025 Adventure Log</span>
                 <span class="special-desc">2025年の冒険を1枚に残す</span>
-            </div>
-            <div class="banner-arrow">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
             <div class="new-badge">NEW</div>
         </a>
@@ -324,7 +341,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </div>
 
 <script>
-    // 翻訳データ
     const translations = {
         ja: {
             update4: '<span class="update-date">2025.12.06</span><span class="update-content">2025 Memories ジェネレーター公開</span>',
@@ -345,9 +361,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     const linksJa = document.getElementById('links-ja');
     const linksEn = document.getElementById('links-en');
 
-    // 言語切り替え処理
     const switchLanguage = (lang) => {
-        // 1. タブの見た目切り替え
         if (lang === 'ja') {
             tabJa.classList.add('active');
             tabEn.classList.remove('active');
@@ -360,7 +374,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             linksEn.classList.add('active');
         }
 
-        // 2. Updatesの翻訳反映
         document.querySelectorAll('[data-key]').forEach(el => {
             const key = el.dataset.key;
             if (translations[lang] && translations[lang][key]) {
@@ -368,15 +381,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             }
         });
 
-        // 3. ページ設定更新
         document.documentElement.lang = lang;
     };
 
-    // イベントリスナー
     tabJa.addEventListener('click', () => switchLanguage('ja'));
     tabEn.addEventListener('click', () => switchLanguage('en'));
 
-    // 初期化 (フッター読み込み待機後に実行)
     const waitForFooterAndInit = () => {
         const checkInterval = 50;
         const timeout = 5000;
@@ -386,13 +396,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             const footerLink = document.querySelector('#footer-placeholder .site-footer');
             if (footerLink) {
                 clearInterval(intervalId);
-                // 初期状態は日本語
                 switchLanguage('ja'); 
             }
             elapsedTime += checkInterval;
             if (elapsedTime >= timeout) {
                 clearInterval(intervalId);
-                switchLanguage('ja'); // タイムアウトしてもとりあえず表示
+                switchLanguage('ja');
             }
         }, checkInterval);
     };
