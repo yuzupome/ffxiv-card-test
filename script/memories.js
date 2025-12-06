@@ -16,17 +16,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const TEMPLATES = {
         square: {
-            layout: { startX: 353, startY: 23, width: 316, height: 634, gapX: 27, gapY: 36 },
+            layout: { startX: 352, startY: 23, width: 316.5, height: 633.5, gapX: 27, gapY: 36 },
             shape: 'rect',
             radius: 0
         },
-        jan: { // 内部IDは既存assetsに合わせてjanのまま
-            layout: { startX: 353, startY: 23, width: 316, height: 634, gapX: 27, gapY: 36 },
+        jan: { 
+            layout: { startX: 352, startY: 23, width: 316.5, height: 633.5, gapX: 27, gapY: 36 },
             shape: 'cut',
             radius: 55
         },
         circle: {
-            layout: { startX: 342, startY: 23, width: 334, height: 630, gapX: 12, gapY: 44 },
+            layout: { startX: 341, startY: 23, width: 334.5, height: 629.5, gapX: 12, gapY: 44 },
             shape: 'rect', 
             radius: 0
         }
