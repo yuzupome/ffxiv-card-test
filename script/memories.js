@@ -324,21 +324,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawTemplateLayer() {
         ctxTemplate.clearRect(0, 0, CONFIG.width, CONFIG.height);
-        
+        ctxTemplate.globalCompositeOperation = 'source-over';
         ctxTemplate.fillStyle = state.bgColor;
         ctxTemplate.fillRect(0, 0, CONFIG.width, CONFIG.height);
+    
+        if (state.texture !== 'none') {
+            ctxTemplate.save();
+            ctxTemplate.globalCompositeOperation = 'overlay'; 
+            drawTextureToContext(ctxTemplate, state.texture);
+            ctxTemplate.restore();
+        }
         
         const asset = state.assets[state.currentTemplate];
         if (asset) {
-            ctxTemplate.save();
-            if (state.currentTemplate === 'circle') {
-                ctxTemplate.globalCompositeOperation = 'source-over';
-            } else {
-                ctxTemplate.globalCompositeOperation = 'multiply';
-            }
+            ctxTemplate.globalCompositeOperation = 'destination-in';
             ctxTemplate.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
-            ctxTemplate.restore();
+            ctxTemplate.globalCompositeOperation = 'multiply';
+            ctxTemplate.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
         }
+        
+        ctxTemplate.globalCompositeOperation = 'source-over';
+    }
         
         ctxTemplate.save();
         ctxTemplate.globalCompositeOperation = 'destination-out';
