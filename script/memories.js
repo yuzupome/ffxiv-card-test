@@ -272,8 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const tmpl = TEMPLATES[state.currentTemplate];
         const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
-        
-        const bleed = 1; 
+        const bleed = 3; 
 
         for (let i = 0; i < 12; i++) {
             const col = i % CONFIG.gridCols;
@@ -286,9 +285,9 @@ document.addEventListener('DOMContentLoaded', () => {
             createShapePath(
                 ctxImages, 
                 cellX - bleed, 
-                cellY - bleed, 
-                width + (bleed * 2), 
-                height + (bleed * 2), 
+                cellY - bleed,  
+                width + (bleed * 2),
+                height + (bleed * 2),
                 tmpl.shape, 
                 tmpl.radius
             );
