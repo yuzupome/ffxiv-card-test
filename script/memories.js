@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
             shape: 'rect',
             radius: 0
         },
-        jan: {
+        jan: { // 内部IDは既存assetsに合わせてjanのまま
             layout: { startX: 353, startY: 23, width: 316, height: 634, gapX: 27, gapY: 36 },
             shape: 'cut',
             radius: 55
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         assets: {}, 
         bgColor: '#ffffff',
         textColor: '#333333',
-        texture: 'none',
+        // texture: 'none', // 削除
         isDragging: false,
         dragTargetIndex: -1,
         lastMouseX: 0,
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const textColorInput = document.getElementById('text-color');
     const bgColorInput = document.getElementById('bg-color');
-    const textureSelect = document.getElementById('texture-select');
+    // const textureSelect = document.getElementById('texture-select'); // 削除
     const saveBtn = document.getElementById('save-btn');
     const saveModal = document.getElementById('saveModal');
     const modalImage = document.getElementById('modalImage');
@@ -166,10 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             drawTemplateLayer();
         });
 
-        textureSelect.addEventListener('change', (e) => {
-            state.texture = e.target.value;
-            drawTemplateLayer();
-        });
+        /* textureSelect削除に伴いリスナーも削除 */
 
         saveBtn.addEventListener('click', saveImage);
         closeModalBtn.addEventListener('click', () => saveModal.classList.add('hidden'));
@@ -250,7 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 div.ondblclick = (e) => {
                     e.stopPropagation();
-                    if(confirm(`${i+1}番目の画像を削除しますか？`)) {
+                    // 削除メッセージも英語化
+                    if(confirm(`Delete image ${i+1}?`)) {
                         state.userImages[i] = null;
                         state.imageStates[i] = { x: 0, y: 0, scale: 1.0 };
                         renderThumbnails();
@@ -309,7 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ★今回の修正箇所: サンドイッチ工法で罫線・円形枠を復活★
     function drawTemplateLayer() {
         ctxTemplate.clearRect(0, 0, CONFIG.width, CONFIG.height);
         
@@ -318,20 +315,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ctxTemplate.fillStyle = state.bgColor;
         ctxTemplate.fillRect(0, 0, CONFIG.width, CONFIG.height);
         
-        // 2. 質感を乗せる（写真の上に乗らないよう、切り抜く前にかける）
-        if (state.texture !== 'none') {
-            ctxTemplate.save();
-            ctxTemplate.globalCompositeOperation = 'overlay'; 
-            drawTextureToContext(ctxTemplate, state.texture);
-            ctxTemplate.restore();
-        }
+        // 2. 質感処理 (削除済み)
         
         const asset = state.assets[state.currentTemplate];
         if (asset) {
             // 3. テンプレートの形に合わせて背景色を切り抜く
-            // (destination-in: 重なっている部分だけを残す)
-            // これにより、テンプレートの「透明な穴」部分は背景色が消え、
-            // 「半透明な罫線」部分は背景色が半透明で残ります。
             ctxTemplate.globalCompositeOperation = 'destination-in';
             ctxTemplate.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
             
@@ -340,7 +328,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctxTemplate.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
         }
         
-        // 描画モードをリセット
         ctxTemplate.globalCompositeOperation = 'source-over';
     }
 
@@ -374,22 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function drawTextureToContext(ctx, type) {
-        if (type === 'noise') {
-            ctx.fillStyle = "rgba(0,0,0,0.15)";
-            for(let i=0; i<CONFIG.height; i+=6) ctx.fillRect(0, i, CONFIG.width, 3);
-        } else if (type === 'paper') {
-            ctx.fillStyle = "rgba(139,69,19,0.2)";
-            ctx.fillRect(0,0, CONFIG.width, CONFIG.height);
-        } else if (type === 'metal') {
-            const grad = ctx.createLinearGradient(0,0,CONFIG.width,CONFIG.height);
-            grad.addColorStop(0, "rgba(255,255,255,0.1)");
-            grad.addColorStop(0.5, "rgba(0,0,0,0.3)");
-            grad.addColorStop(1, "rgba(255,255,255,0.1)");
-            ctx.fillStyle = grad;
-            ctx.fillRect(0,0, CONFIG.width, CONFIG.height);
-        }
-    }
+    // drawTextureToContext 関数を削除
 
     // --- 8. 操作ロジック ---
     function getPos(e) {
@@ -520,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch(e) {
             console.error(e);
-            alert('保存に失敗しました');
+            alert('Save Failed'); // エラーメッセージも英語化
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
