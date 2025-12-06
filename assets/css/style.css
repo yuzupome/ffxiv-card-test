@@ -610,3 +610,65 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-5px); }
         }
+
+        /* --- シェアセクション --- */
+.share-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.share-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+}
+
+.hashtag-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* X投稿ボタン */
+.x-share-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #000;
+    color: #fff;
+    text-decoration: none;
+    padding: 0.8rem 1.2rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: opacity 0.2s;
+    width: 100%;
+}
+
+.x-share-btn:hover {
+    opacity: 0.8;
+}
+
+/* 英語タグ（サブ表示） */
+.sub-tag {
+    font-size: 0.85rem;
+    color: var(--text-secondary-color);
+    font-family: monospace;
+    background: var(--surface-color);
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    user-select: all;
+}
+
+.share-note {
+    font-size: 0.75rem;
+    color: var(--text-secondary-color);
+    margin-top: 0.8rem;
+    line-height: 1.4;
+}
