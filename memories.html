@@ -16,6 +16,74 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Orbitron:wght@600&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="./assets/css/style.css" />
+    <style>
+        /* シェアセクション用の追加CSS */
+        .share-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .share-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--text-secondary-color);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .share-lang-note {
+            font-size: 0.8rem;
+            color: var(--text-secondary-color);
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .hashtag-display {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            width: 100%;
+        }
+
+        /* 修正: ボタンではなく「表示ボックス」に変更 */
+        .tag-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .tag-text {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--text-color);
+            /* ★重要: タップでテキストを一発選択できるようにする */
+            user-select: all;
+            -webkit-user-select: all;
+            font-family: monospace; /* 等幅フォントでコードっぽく */
+        }
+
+        .tag-region {
+            font-size: 0.75rem;
+            color: var(--text-secondary-color);
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .share-note {
+            font-size: 0.75rem;
+            color: var(--text-secondary-color);
+            margin-top: 1.2rem;
+            line-height: 1.4;
+        }
+    </style>
 </head>
 <body class="generator-page">
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKSZ7BSD"
@@ -41,6 +109,7 @@
                 </div>
                 
                 <p style="text-align: center; font-size: 0.85rem; color: #999; margin-top: 0.5rem;">
+                    ドラッグで移動 <span style="font-size:0.75rem; opacity:0.8;">(Drag to Move)</span> / 
                     スクロールで拡大縮小 <span style="font-size:0.75rem; opacity:0.8;">(Scroll to Scale)</span>
                 </p>
             </main>
@@ -57,7 +126,7 @@
                         </div>
                     </div>
 
-                    <div class="control-section">
+                     <div class="control-section">
                         <h2 class="section-title">2. Photos</h2>
                         
                         <label for="file-input" class="file-upload-label">
@@ -74,8 +143,8 @@
                             </div>
                         
                         <p style="font-size:0.75rem; color:#888; margin-top:5px; text-align:right;">
-                            タップで変更 <span style="opacity:0.8;">(Tap to Edit)</span> / 
-                            ドラッグで並替 <span style="opacity:0.8;">(Drag to Sort)</span>
+                            タップで変更 <span style="opacity:0.8;">(Edit)</span> / 
+                            ドラッグで並替 <span style="opacity:0.8;">(Sort)</span>
                         </p>
                     </div>
 
@@ -100,31 +169,35 @@
                     <button id="save-btn" class="generate-btn">
                         <img src="./assets/favicon.png" alt="generate card" style="width:24px; height:24px;">
                         <div style="text-align: left; line-height: 1.2;">
-                            <span style="display:block; font-size: 1.1rem;">2025年を1枚にまとめる</span>
+                            <span style="display:block; font-size: 1.1rem;">今年の思い出を1枚にする</span>
                             <span style="display:block; font-size: 0.8rem; font-weight: normal; opacity: 0.8;">Save Your Journey</span>
                         </div>
                     </button>
 
                     <div class="share-section">
-                        <p class="share-label">Share with Hashtags</p>
-                        <div class="hashtag-buttons">
-                            <a href="https://twitter.com/intent/tweet?text=%23FF14%E4%BB%8A%E5%B9%B4%E3%81%AE12%E6%9E%9A&url=https%3A%2F%2Fyuzupome.github.io%2Fffxiv-card-test%2Fmemories.html" 
-                               target="_blank" 
-                               rel="noopener noreferrer" 
-                               class="x-share-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                                <span>#FF14今年の12枚</span>
-                            </a>
+                        <p class="share-label">Recommended Hashtags</p>
+                        
+                        <p class="share-lang-note">
+                            言語圏に合わせて使い分けてください<br>
+                            <span style="opacity: 0.8;">Select the tag for your region</span>
+                        </p>
+
+                        <div class="hashtag-display">
+                            <div class="tag-box">
+                                <span class="tag-text">#FF14今年の12枚</span>
+                                <span class="tag-region">JP</span>
+                            </div>
                             
-                            <a href="https://twitter.com/intent/tweet?text=%23FFXIV12Months&url=https%3A%2F%2Fyuzupome.github.io%2Fffxiv-card-test%2Fmemories.html" 
-                               target="_blank" 
-                               rel="noopener noreferrer" 
-                               class="x-share-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                                <span>#FFXIV12Months</span>
-                            </a>
+                            <div class="tag-box">
+                                <span class="tag-text">#FFXIV12Months</span>
+                                <span class="tag-region">Global</span>
+                            </div>
                         </div>
-                        <p class="share-note">※画像は手動で添付してください<br><span style="font-size:0.7rem; opacity:0.8;">Please attach the image manually.</span></p>
+                        
+                        <p class="share-note">
+                            ※画像は手動で添付してください<br>
+                            <span style="font-size:0.7rem; opacity:0.8;">Please attach the image manually.</span>
+                        </p>
                     </div>
                     </div>
             </aside>
