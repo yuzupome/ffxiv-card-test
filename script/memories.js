@@ -16,17 +16,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const TEMPLATES = {
         square: {
-            layout: { startX: 352, startY: 23, width: 316.5, height: 633.5, gapX: 27, gapY: 36 },
+            layout: { startX: 353, startY: 23, width: 316, height: 634, gapX: 27, gapY: 36 },
             shape: 'rect',
             radius: 0
         },
         jan: { 
-            layout: { startX: 352, startY: 23, width: 316.5, height: 633.5, gapX: 27, gapY: 36 },
+            layout: { startX: 353, startY: 23, width: 316, height: 634, gapX: 27, gapY: 36 },
             shape: 'cut',
             radius: 55
         },
         circle: {
-            layout: { startX: 341, startY: 23, width: 334.5, height: 629.5, gapX: 12, gapY: 44 },
+            layout: { startX: 342, startY: 23, width: 334, height: 630, gapX: 12, gapY: 44 },
             shape: 'rect', 
             radius: 0
         }
@@ -272,6 +272,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const tmpl = TEMPLATES[state.currentTemplate];
         const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
+        
+        const bleed = 1; 
 
         for (let i = 0; i < 12; i++) {
             const col = i % CONFIG.gridCols;
@@ -280,7 +282,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const cellY = startY + row * (height + gapY);
 
             ctxImages.save();
-            createShapePath(ctxImages, cellX, cellY, width, height, tmpl.shape, tmpl.radius);
+            
+            createShapePath(
+                ctxImages, 
+                cellX - bleed, 
+                cellY - bleed, 
+                width + (bleed * 2), 
+                height + (bleed * 2), 
+                tmpl.shape, 
+                tmpl.radius
+            );
             ctxImages.clip();
 
             if (state.userImages[i]) {
@@ -297,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 ctxImages.fillStyle = "#eeeeee"; 
                 ctxImages.fill();
+                
                 ctxImages.fillStyle = "rgba(0,0,0,0.2)";
                 ctxImages.font = "bold 60px sans-serif";
                 ctxImages.textAlign = "center";
