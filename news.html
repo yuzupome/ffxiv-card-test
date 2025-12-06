@@ -129,7 +129,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 200px; /* テキストのみなので少し横長に */
+            width: 200px;
             padding: 1.2rem;
             border: 1px solid var(--border-color);
             border-radius: 12px;
@@ -149,8 +149,65 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         }
         
         .btn-text {
-            font-size: 1.05rem; /* 少し文字サイズアップ */
+            font-size: 1.05rem;
             text-align: center;
+        }
+
+        /* --- 特設バナーボタン --- */
+        .special-banner-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto 3rem auto;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #fff 0%, var(--surface-color) 100%);
+            border: 2px solid var(--accent-color);
+            border-radius: 16px;
+            text-decoration: none;
+            color: var(--text-color);
+            position: relative;
+            box-shadow: 0 4px 15px rgba(242, 178, 107, 0.15);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .special-banner-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(242, 178, 107, 0.3);
+            background: #fff;
+        }
+
+        .special-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-color);
+            line-height: 1.2;
+            margin-bottom: 0.3rem;
+            letter-spacing: 0.05em;
+        }
+
+        .special-desc {
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 0.9rem;
+            color: var(--text-secondary-color);
+            font-weight: 500;
+        }
+
+        .new-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: var(--accent-color);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 0.3rem 0.8rem;
+            border-bottom-left-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
         }
 
         /* How to Use */
@@ -178,8 +235,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             .generator-card-btn {
                 width: 100%;
                 max-width: 280px;
-                /* スマホでも押しやすい高さを確保 */
                 padding: 1rem;
+            }
+            .special-banner-link {
+                padding: 1.2rem;
+                margin-bottom: 2.5rem;
+            }
+            .special-title {
+                font-size: 1.2rem;
             }
         }
     </style>
@@ -191,12 +254,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="header-placeholder"></div>
 
     <main class="news-wrapper">
+        
         <a href="./memories.html" class="special-banner-link">
-            <span class="special-title">2025 Collection</span>
-            <span class="special-desc">今年の思い出を1枚のカードに</span>
+            <span class="special-title">2025 Adventure Log</span>
+            <span class="special-desc">2025年の冒険を1枚に残す</span>
             <div class="new-badge">NEW</div>
         </a>
-        
+
         <div class="lang-tabs">
             <button class="tab-btn active" id="tab-ja">日本語版</button>
             <button class="tab-btn" id="tab-en">🇺🇸 English Ver.</button>
@@ -230,6 +294,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <div class="update-history">
             <h2 class="news-title">Updates</h2>
             <ul id="update-list">
+                <li data-key="update4">
+                    <span class="update-date">2025.12.06</span>
+                    <span class="update-content">2025 Memories ジェネレーター公開</span>
+                </li>
                 <li data-key="update3">
                     <span class="update-date">2025.11.27</span>
                     <span class="update-content">日本語版・英語版 縦型カード追加</span>
@@ -250,14 +318,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </div>
 
 <script>
-    // 翻訳データ (Updatesの中身だけ管理)
+    // 翻訳データ
     const translations = {
         ja: {
+            update4: '<span class="update-date">2025.12.06</span><span class="update-content">2025 Memories ジェネレーター公開</span>',
             update3: '<span class="update-date">2025.11.27</span><span class="update-content">日本語版・英語版 縦型カード追加</span>',
             update2: '<span class="update-date">2025.07.27</span><span class="update-content">アイコンカラー変更機能追加<br>英語版公開</span>',
             update1: '<span class="update-date">2025.07.05</span><span class="update-content">ジェネレーター公開</span>'
         },
         en: {
+            update4: '<span class="update-date">2025.12.06</span><span class="update-content">2025 Memories Generator Released</span>',
             update3: '<span class="update-date">2025.11.27</span><span class="update-content">Added Vertical Card (JP/EN)</span>',
             update2: '<span class="update-date">2025.07.27</span><span class="update-content">Added Icon Color feature<br>English version released</span>',
             update1: '<span class="update-date">2025.07.05</span><span class="update-content">Generator Released</span>'
