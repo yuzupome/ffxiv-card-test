@@ -370,8 +370,12 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
 /* 16:9 Aspect Ratio for Memories Generator */
 .canvas-wrapper.memories-mode {
     padding-top: calc(56.25% - 2px) !important;
-    background: #e5e5e5;
+    width: calc(100% - 2px) !important;
+    margin: 0 auto !important;
+    background: #e5e5e5 !important;
     border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .canvas-wrapper.memories-mode canvas {
