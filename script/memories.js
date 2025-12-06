@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dragTargetIndex: -1,
         lastMouseX: 0,
         lastMouseY: 0,
-        targetUploadIndex: -1 // 追加: 個別アップロード対象のインデックス
+        targetUploadIndex: -1
     };
 
     for(let i=0; i<12; i++) state.imageStates.push({ x: 0, y: 0, scale: 1.0 });
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctxText = layerText.getContext('2d');
 
     const fileInput = document.getElementById('file-input');
-    const singleFileInput = document.getElementById('single-file-input'); // 追加
+    const singleFileInput = document.getElementById('single-file-input');
     const thumbnailList = document.getElementById('thumbnail-list');
     const loader = document.getElementById('loader');
     const app = document.getElementById('app');
@@ -119,28 +119,22 @@ document.addEventListener('DOMContentLoaded', () => {
             Sortable.create(thumbnailList, {
                 animation: 150,
                 ghostClass: 'sortable-ghost',
-                delay: 200, // スマホでのスクロール誤爆防止
+                delay: 200,
                 delayOnTouchOnly: true,
-                // 【要望4対応】 Swapロジックの実装
                 onEnd: (evt) => {
                     const oldIndex = evt.oldIndex;
                     const newIndex = evt.newIndex;
-                    
                     if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
 
-                    // 配列操作: InsertではなくSwap（交換）を行う
-                    // 1. 画像データの交換
+                    // Swap logic
                     const tempImg = state.userImages[oldIndex];
                     state.userImages[oldIndex] = state.userImages[newIndex];
                     state.userImages[newIndex] = tempImg;
 
-                    // 2. 位置調整データ(scale/x/y)も交換
                     const tempState = state.imageStates[oldIndex];
                     state.imageStates[oldIndex] = state.imageStates[newIndex];
                     state.imageStates[newIndex] = tempState;
 
-                    // 重要: SortableJSはDOMを「移動」してしまっているので、
-                    // Swap後の正しいデータ順序でDOMを再描画して整合性を取る
                     renderThumbnails();
                     drawImagesLayer();
                 }
@@ -151,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 5. イベント設定 ---
     function setupEvents() {
         fileInput.addEventListener('change', handleFileUpload);
-        singleFileInput.addEventListener('change', handleSingleFileUpload); // 追加
+        singleFileInput.addEventListener('change', handleSingleFileUpload);
 
         document.querySelectorAll('.temp-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -190,13 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 6. ファイル処理 ---
-    
-    // 一括アップロード (既存)
     function handleFileUpload(e) {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
-        let loadedCount = 0;
         files.slice(0, 12).forEach((file) => {
             const reader = new FileReader();
             reader.onload = (evt) => {
@@ -209,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         renderThumbnails();
                         drawImagesLayer();
                     }
-                    loadedCount++;
                 };
                 img.src = evt.target.result;
             };
@@ -218,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.value = ''; 
     }
 
-    // 【要望3対応】個別アップロード処理
     function handleSingleFileUpload(e) {
         const file = e.target.files[0];
         if (!file || state.targetUploadIndex === -1) return;
@@ -229,11 +218,11 @@ document.addEventListener('DOMContentLoaded', () => {
             img.onload = () => {
                 const idx = state.targetUploadIndex;
                 state.userImages[idx] = img;
-                state.imageStates[idx] = { x: 0, y: 0, scale: 1.0 }; // 位置リセット
+                state.imageStates[idx] = { x: 0, y: 0, scale: 1.0 };
                 
                 renderThumbnails();
                 drawImagesLayer();
-                state.targetUploadIndex = -1; // indexリセット
+                state.targetUploadIndex = -1;
             };
             img.src = evt.target.result;
         };
@@ -247,9 +236,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const div = document.createElement('div');
             div.className = 'thumb-slot' + (state.userImages[i] ? '' : ' empty');
             div.dataset.index = i;
-            div.dataset.month = i + 1; // 【要望2対応】CSSで数字を表示するための属性
+            div.dataset.month = i + 1;
 
-            // 【要望3対応】クリックでアップロード
             div.onclick = () => {
                 state.targetUploadIndex = i;
                 singleFileInput.click();
@@ -260,9 +248,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.src = state.userImages[i].src;
                 div.appendChild(img);
                 
-                // ダブルクリックで削除 (PC向け補助機能として残す)
                 div.ondblclick = (e) => {
-                    e.stopPropagation(); // Clickイベントの伝播を止める
+                    e.stopPropagation();
                     if(confirm(`${i+1}番目の画像を削除しますか？`)) {
                         state.userImages[i] = null;
                         state.imageStates[i] = { x: 0, y: 0, scale: 1.0 };
@@ -275,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 7. 描画ロジック (変更なし/省略可だが文脈維持のため記載) ---
+    // --- 7. 描画ロジック ---
     function redrawAll() {
         drawImagesLayer();
         drawTemplateLayer();
@@ -322,12 +309,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ★今回の修正箇所: サンドイッチ工法で罫線・円形枠を復活★
     function drawTemplateLayer() {
         ctxTemplate.clearRect(0, 0, CONFIG.width, CONFIG.height);
+        
+        // 1. 背景色をベタ塗り
         ctxTemplate.globalCompositeOperation = 'source-over';
         ctxTemplate.fillStyle = state.bgColor;
         ctxTemplate.fillRect(0, 0, CONFIG.width, CONFIG.height);
-    
+        
+        // 2. 質感を乗せる（写真の上に乗らないよう、切り抜く前にかける）
         if (state.texture !== 'none') {
             ctxTemplate.save();
             ctxTemplate.globalCompositeOperation = 'overlay'; 
@@ -337,38 +328,20 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const asset = state.assets[state.currentTemplate];
         if (asset) {
+            // 3. テンプレートの形に合わせて背景色を切り抜く
+            // (destination-in: 重なっている部分だけを残す)
+            // これにより、テンプレートの「透明な穴」部分は背景色が消え、
+            // 「半透明な罫線」部分は背景色が半透明で残ります。
             ctxTemplate.globalCompositeOperation = 'destination-in';
             ctxTemplate.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
+            
+            // 4. テンプレートの影や枠線の色を乗算で重ねる
             ctxTemplate.globalCompositeOperation = 'multiply';
             ctxTemplate.drawImage(asset, 0, 0, CONFIG.width, CONFIG.height);
         }
         
+        // 描画モードをリセット
         ctxTemplate.globalCompositeOperation = 'source-over';
-    }
-        
-        ctxTemplate.save();
-        ctxTemplate.globalCompositeOperation = 'destination-out';
-
-        const tmpl = TEMPLATES[state.currentTemplate];
-        const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
-
-        for (let i = 0; i < 12; i++) {
-            const col = i % CONFIG.gridCols;
-            const row = Math.floor(i / CONFIG.gridCols);
-            const cellX = startX + col * (width + gapX);
-            const cellY = startY + row * (height + gapY);
-
-            createShapePath(ctxTemplate, cellX, cellY, width, height, tmpl.shape, tmpl.radius);
-            ctxTemplate.fill(); 
-        }
-        ctxTemplate.restore();
-
-        if (state.texture !== 'none') {
-            ctxTemplate.save();
-            ctxTemplate.globalCompositeOperation = 'overlay'; 
-            drawTextureToContext(ctxTemplate, state.texture);
-            ctxTemplate.restore();
-        }
     }
 
     function drawTextLayer() {
