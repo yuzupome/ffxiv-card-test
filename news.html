@@ -103,7 +103,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             background-color: var(--primary-color);
         }
 
-        /* --- カード選択ボタンエリア (テキストのみ版) --- */
+        /* --- カード選択ボタンエリア --- */
         .generator-links-container {
             min-height: 80px;
         }
@@ -153,10 +153,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             text-align: center;
         }
 
-        /* --- 特設バナーボタン（修正版：矢印なし・中央揃え） --- */
+        /* --- 特設バナーボタン（シンプル版） --- */
         .special-banner-link {
             display: flex;
-            flex-direction: column; /* 縦並びに戻して中央揃え */
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             width: 100%;
@@ -164,7 +164,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             margin: 0 auto 3rem auto;
             padding: 1.5rem;
             
-            /* 背景: ほんのり色をつけてボタン感を維持 */
             background-color: #fffbf5;
             border: 2px solid var(--accent-color);
             border-radius: 16px;
@@ -195,7 +194,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         .banner-content {
             display: flex;
             flex-direction: column;
-            align-items: center; /* 中央揃え */
+            align-items: center;
             text-align: center;
         }
 
@@ -214,20 +213,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             font-size: 0.9rem;
             color: var(--text-secondary-color);
             font-weight: 500;
-        }
-
-        /* NEWバッジ（サイズと位置を元に戻す） */
-        .new-badge {
-            position: absolute;
-            top: 0;
-            right: 0; /* 右上に戻す */
-            background-color: var(--accent-color);
-            color: #fff;
-            font-size: 0.7rem; /* 小さく戻す */
-            font-weight: bold;
-            padding: 0.3rem 0.8rem;
-            border-bottom-left-radius: 8px; /* 左下を丸く */
-            font-family: 'Orbitron', sans-serif;
         }
 
         /* 期間限定ラベル */
@@ -281,7 +266,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <span class="special-title">2025 Adventure Log</span>
                 <span class="special-desc">2025年の冒険を1枚に残す</span>
             </div>
-            <div class="new-badge">NEW</div>
         </a>
 
         <div class="lang-tabs">
