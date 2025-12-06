@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
         assets: {}, 
         bgColor: '#ffffff',
         textColor: '#333333',
-        // texture: 'none', // 削除
         isDragging: false,
         dragTargetIndex: -1,
         lastMouseX: 0,
@@ -65,9 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('loader');
     const app = document.getElementById('app');
     
+    // ▼ 追加: 背景色連動のためのラッパー要素
+    const canvasWrapper = document.querySelector('.canvas-wrapper');
+
     const textColorInput = document.getElementById('text-color');
     const bgColorInput = document.getElementById('bg-color');
-    // const textureSelect = document.getElementById('texture-select'); // 削除
     const saveBtn = document.getElementById('save-btn');
     const saveModal = document.getElementById('saveModal');
     const modalImage = document.getElementById('modalImage');
@@ -79,6 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
             c.width = CONFIG.width;
             c.height = CONFIG.height;
         });
+        
+        // ▼ 追加: 初期化時も背景色を合わせる
+        if(canvasWrapper) {
+            canvasWrapper.style.backgroundColor = state.bgColor;
+        }
 
         renderThumbnails();
         setupSortable();
@@ -126,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const newIndex = evt.newIndex;
                     if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
 
-                    // Swap logic
                     const tempImg = state.userImages[oldIndex];
                     state.userImages[oldIndex] = state.userImages[newIndex];
                     state.userImages[newIndex] = tempImg;
@@ -152,6 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('.temp-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 state.currentTemplate = e.target.dataset.template;
+                
+                // テンプレート変更時も再描画 (drawImagesLayerでbleed値が変わるため)
                 redrawAll();
             });
         });
@@ -164,9 +171,11 @@ document.addEventListener('DOMContentLoaded', () => {
         bgColorInput.addEventListener('input', (e) => {
             state.bgColor = e.target.value;
             drawTemplateLayer();
+            // ▼ 追加: ここで後ろの壁の色も変える！
+            if(canvasWrapper) {
+                canvasWrapper.style.backgroundColor = state.bgColor;
+            }
         });
-
-        /* textureSelect削除に伴いリスナーも削除 */
 
         saveBtn.addEventListener('click', saveImage);
         closeModalBtn.addEventListener('click', () => saveModal.classList.add('hidden'));
@@ -247,7 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 div.ondblclick = (e) => {
                     e.stopPropagation();
-                    // 削除メッセージも英語化
                     if(confirm(`Delete image ${i+1}?`)) {
                         state.userImages[i] = null;
                         state.imageStates[i] = { x: 0, y: 0, scale: 1.0 };
@@ -272,6 +280,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const tmpl = TEMPLATES[state.currentTemplate];
         const { startX, startY, width, height, gapX, gapY } = tmpl.layout;
+        
+        // ★塗り足し設定（維持）
         let bleed = 7;
         if (state.currentTemplate === 'circle') {
             bleed = 9;
@@ -285,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             ctxImages.save();
             
+            // 塗り足し込みのパスを作成
             createShapePath(
                 ctxImages, 
                 cellX - bleed,       
@@ -308,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 ctxImages.drawImage(img, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
             } else {
+                // ここで描かれるのが「うすいグレー」です
                 ctxImages.fillStyle = "#eeeeee"; 
                 ctxImages.fill();
                 
@@ -328,8 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ctxTemplate.globalCompositeOperation = 'source-over';
         ctxTemplate.fillStyle = state.bgColor;
         ctxTemplate.fillRect(0, 0, CONFIG.width, CONFIG.height);
-        
-        // 2. 質感処理 (削除済み)
         
         const asset = state.assets[state.currentTemplate];
         if (asset) {
@@ -374,8 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.rect(x, y, w, h);
         }
     }
-
-    // drawTextureToContext 関数を削除
 
     // --- 8. 操作ロジック ---
     function getPos(e) {
@@ -506,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch(e) {
             console.error(e);
-            alert('Save Failed'); // エラーメッセージも英語化
+            alert('Save Failed');
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
