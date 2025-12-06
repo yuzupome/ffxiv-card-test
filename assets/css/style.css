@@ -469,3 +469,74 @@ input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
         max-height: 80vh;
     }
 }
+
+/* 特設バナーボタン */
+        .special-banner-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto 2.5rem auto; 
+            padding: 1.5rem;
+            background: linear-gradient(135deg, var(--surface-color) 0%, #fff 100%);
+            border: 1px solid var(--accent-color); 
+            border-radius: 16px;
+            text-decoration: none;
+            color: var(--text-color);
+            position: relative;
+            box-shadow: 0 4px 15px rgba(242, 178, 107, 0.15); 
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .special-banner-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(242, 178, 107, 0.25);
+            border-color: var(--accent-color);
+        }
+
+        /* タイトル (英語) */
+        .special-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-color);
+            line-height: 1.2;
+            margin-bottom: 0.3rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* 説明文 (日本語) */
+        .special-desc {
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 0.9rem;
+            color: var(--text-secondary-color);
+            font-weight: 500;
+        }
+
+        /* NEWバッジ */
+        .new-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: var(--accent-color);
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 0.3rem 0.8rem;
+            border-bottom-left-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* スマホ調整 */
+        @media (max-width: 767px) {
+            .special-banner-link {
+                padding: 1.2rem;
+                margin-bottom: 2rem;
+            }
+            .special-title {
+                font-size: 1.3rem;
+            }
+        }
